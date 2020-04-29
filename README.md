@@ -1,2 +1,0 @@
-# wguo
-Personal website
