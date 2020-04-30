@@ -15,7 +15,7 @@ publication: "In *Workshop on Synergies in Geometric Data Analysis at Neural Inf
 publication_short: 
 publication_types:
 - "1"
-publishDate: "2021-01-01T00:00:00Z"
+publishDate: "2020-01-01T00:00:00Z"
 # slides: example
 summary: 
 tags:

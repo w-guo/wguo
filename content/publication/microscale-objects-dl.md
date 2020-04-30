@@ -19,7 +19,7 @@ publication: "In *Proceedings of International Conference on Manipulation, Autom
 publication_short: 
 publication_types:
 - "1"
-publishDate: "2021-01-01T00:00:00Z"
+publishDate: "2020-01-01T00:00:00Z"
 # slides: example
 summary: 
 tags:

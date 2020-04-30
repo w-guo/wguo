@@ -15,9 +15,10 @@ publication: "*Journal of Manufacturing Systems, Special Issue on High Performan
 publication_short: 
 publication_types:
 - "2"
-publishDate: "2021-01-01T00:00:00Z"
+publishDate: "2020-01-01T00:00:00Z"
 # slides: example
-summary: Generate an abstract view of the manufacturing data using the Mapper algorithm in TDA to facilitate a better understanding of the casual relationships between process variables and outputs through visualization.
+summary: 
+#Generate an abstract view of the manufacturing data using the Mapper algorithm in TDA to facilitate a better understanding of the casual relationships between process variables and outputs through visualization.
 tags:
 - Topological data analysis
 - Feature selection
