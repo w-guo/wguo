@@ -60,7 +60,7 @@ First, we split the images in a 90:10 ratio randomly for training and testing.
 
 The training of the neural network is performed on sub-images randomly extracted from full training images. Each full training image is sampled repeatedly to generate a training set size of ~100k. Each sampled sub-image is then randomly chosen to follow one of the four 90$^o$ rotations or undergo reflection about vertical central axis. At last, we relabel the sub-images with full pixels labeled as class 1 to class 0 (see [gen_img_aug.py](https://github.com/w-guo/Boeing-AFP-ML/blob/master/src/utils/gen_img_aug.py)).
 
-### Image pre-processin
+### Image pre-processing
 
 Before training, each sub-image is pre-processed through the following steps (see [pre-processing.py](https://github.com/w-guo/Boeing-AFP-ML/blob/master/src/pre_processing.py)): 
 * Gray-scale conversion
@@ -100,9 +100,20 @@ In this work, we assume we have no prior knowledge about the expected centers an
     <em> Image reconstruction</em>
 </p>
 
-## Find class boundary
+## Post-processing
+
+1. Convert prediction to gray scale image (probability x 255) for each pixel 
+2. Extract line segments based on contrast(no binarization!)
+3. Determine major polylines formed by line segments as the boundary
 
 ## Results
+
+<p align="center">
+    <img src="https://depts.washington.edu/barc/sites/default/files/styles/medium/public/2019_Deep_learning_Ashsis_project.png" style="width:80%">
+    <em> An example of automatically detected tow boundaries during in-process inspection of composite parts</em>
+</p>
+
+
 
 [^Keras]: A Keras implementation can be found here: https://github.com/keras-team/keras/issues/3556, which requires the revision of both *optimizers.py* files residing in ../site-packages/keras/optimizers.py and ../site-packages/tensorflow/python/keras/optimizers.py.
 [^Lovasz-Softmax]: In fact, Lovasz-Softmax loss can be used to train the model from the beginning. The only downside is its trainig time for each epoch is about three times as long as that during the 1st stage.
