@@ -17,6 +17,7 @@ a:hover {
 .navbar-light .navbar-nav>.nav-item>.nav-link:focus,
 .navbar-light .navbar-nav>.nav-item>.nav-link:hover,
 .navbar-light .navbar-nav>.nav-item>.nav-link:active {
+  font-size: 18px;
   font-weight: 700;
 }
 
@@ -304,6 +305,15 @@ iframe {
 	color: #fff;
 }
 
+/* page width limit */
+
 .container {
-    max-width: 1160px;
+    max-width: 1160px; /* override 1200px */
+}
+
+ /* avatar */
+ 
+.avatar {
+  width: 200px;  /* override 270px */
+  height: 200px; /* override 270px */
 }
