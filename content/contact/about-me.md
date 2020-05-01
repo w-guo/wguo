@@ -47,4 +47,4 @@ subtitle = ""
  css_class = "mini"
 +++
 
-I am originally from Heilongjinag, China. My family moved to Suzhou when I was 16. I have been always facinated by the applications of artificial intelligence and robotics. 
+I am originally from Heilongjiang, China. My family moved to Suzhou when I was 16. I have been always facinated by the applications of artificial intelligence and robotics, even since my high school days.  
