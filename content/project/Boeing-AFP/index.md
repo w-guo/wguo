@@ -37,7 +37,7 @@ One important step in automated fiber placement (AFP) manufacturing systems is t
   - [1st stage training](#1st-stage-training)
   - [2nd stage training](#2nd-stage-training)
 - **[Predict the testing set](#predict-the-testing-set)**
-- **[Find class boundary](#find-class-boundary)**
+- **[Post-processing](#post-processing)**
 - **[Results](#results)**
 
 The major highlights of this work are:
@@ -115,5 +115,6 @@ In this work, we assume we have no prior knowledge about the expected centers an
 
 
 
-[^Keras]: A Keras implementation can be found here: https://github.com/keras-team/keras/issues/3556, which requires the revision of both *optimizers.py* files residing in ../site-packages/keras/optimizers.py and ../site-packages/tensorflow/python/keras/optimizers.py.
+[^Keras]: A Keras implementation can be found here: [https://github.com/keras-team/keras/issues/3556](https://github.com/keras-team/keras/issues/3556), which requires the revision of both *optimizers.py* files residing in ../site-packages/keras/optimizers.py and ../site-packages/tensorflow/python/keras/optimizers.py.
+
 [^Lovasz-Softmax]: In fact, Lovasz-Softmax loss can be used to train the model from the beginning. The only downside is its trainig time for each epoch is about three times as long as that during the 1st stage.
