@@ -17,7 +17,6 @@ a:hover {
 .navbar-light .navbar-nav>.nav-item>.nav-link:focus,
 .navbar-light .navbar-nav>.nav-item>.nav-link:hover,
 .navbar-light .navbar-nav>.nav-item>.nav-link:active {
-  font-size: 18px;
   font-weight: 700;
 }
 
@@ -35,7 +34,7 @@ a:hover {
 }
 
 .navbar-nav {
-  padding: 15px 0 15px 0; /* add vertical padding so that items are evenly spaced */
+  padding: 15px 0 13px 0; /* add padding to adjust vertical position */
   border-bottom: 2px solid #E13D3D;
 }
 
