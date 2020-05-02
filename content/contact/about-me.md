@@ -47,4 +47,12 @@ subtitle = ""
  css_class = "mini"
 +++
 
-I am originally from Heilongjiang, China. My family moved to Suzhou when I was 16. I have been always facinated by the applications of artificial intelligence and robotics, even since my high school days.  
+I am originally from Heilongjiang, China. My family moved to Suzhou when I was 16. I have been always facinated by the applications of artificial intelligence and the techniques behind it, even since my high school days. This preoccupation led me to major in Control Science and Engineering from School of Astronautics at Harbin Institute of Technology. I went on to receive my BS and MS degrees in this field at HIT in 2006 and 2008, respectively.
+
+
+To further my understanding of control science, I came to the Department of Aerospace Engineering and Mechanics at the University of Minnesota, Twin Cities, to earn my PhD degree. I was first awarded my MS degree in 2010, where I was advised by Professor Yiyuan Zhao. During my MS studies at the U of M, I focused primarily on trajectory optimization for unmanned aerial vehicle flight subject to various constraints introduced by UAV performance capabilities and wind effects.
+
+
+Following my MS thesis defense, Professor Zhao informed me that he would be retiring due to health concerns. Although these circumstances were unfortunate, they presented a natural opportunity for me to transition my studies toward Industrial Engineering, which had previously captivate my interest due to the wide-ranging applicability and necessity of advanced mathematical methods in solving real-world problems. I finished my third MS degree in Industrial & Systems Engineering at the U of M under the supervision of Professor Zizhuo Wang.
+
+It has been a long journey of frustration, tears mixed with joy and excitement. Now I am happy to end it and ready to start a new chapter in my life. In my spare time, I enjoy spending time with my husband and our two cats, Ira and Esther. Thanks for reading. Cheers!
