@@ -39,6 +39,7 @@ One important step in automated fiber placement (AFP) manufacturing systems is t
 - **[Predict the testing set](#predict-the-testing-set)**
 - **[Post-processing](#post-processing)**
 - **[Results](#results)**
+- **[Follow-up work](#follow-up-work)**
 
 The major highlights of this work are:
 
@@ -110,10 +111,10 @@ In this work, we assume we have no prior knowledge about the expected centers an
 
 <p align="center">
     <img src="https://depts.washington.edu/barc/sites/default/files/styles/medium/public/2019_Deep_learning_Ashsis_project.png" style="width:80%">
-    <em> An example of automatically detected tow boundaries during in-process inspection of composite parts</em>
+    <em> An example of automatically detected tow boundaries during in-process inspection of composite parts style="width:80%"</em>
 </p>
 
-
+## Follow-up work
 
 [^Keras]: A Keras implementation can be found here: [https://github.com/keras-team/keras/issues/3556](https://github.com/keras-team/keras/issues/3556), which requires the revision of both *optimizers.py* files residing in ../site-packages/keras/optimizers.py and ../site-packages/tensorflow/python/keras/optimizers.py.
 
