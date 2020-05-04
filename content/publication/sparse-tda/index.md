@@ -4,7 +4,7 @@ authors:
 - Wei Guo, Krithika Manohar, Steven L. Brunton and Ashis G. Banerjee
 date: "2018-01-08T00:00:00Z"
 doi: ""
-featured: false
+featured: true
 links:
 - icon: file-pdf
   icon_pack: fas
@@ -21,7 +21,7 @@ publication_types:
 - "2"
 publishDate: ""
 #slides: example
-summary: 
+summary: "We present a new method, referred as Sparse-TDA method, that combines persistence image-based TDA method with QR pivoting-based sparse sampling algorithm to transform topological features into image pixels and identify discriminative pixel samples in the presence of noisy and redundant information."
 tags:
 - Topological data analysis
 - Sparse sampling
