@@ -43,6 +43,8 @@ One important step in automated fiber placement (AFP) manufacturing systems is t
 
 The major highlights of this work are:
 
+- We formulate the problem into a binary segmentation problem, where the boundary between the classes is formed by the tow ends and tow edges of interest. These tow ends can be subsequently extracted from the identified boundary. 
+
 - After sub-images are randomly extracted from the full images, since it is difficult to distingush sub-images with full pixels labeled as class 1 from those with full pixels labeled as class 0 without a larger context, we relabel those sub-images with full pixels labeled as class 1 to class 0 so that sub-images with only one class of pixels have the same labels. In this manner, the training model only needs to learn to recoginize the sub-images that contain the class boundaries and those that do not.
 
 - The major changes we have made on the original U-Net architecture includes the use of pre-trianed Xception model from ImageNet as the encoder and the replacement of the second convolutional layer in each level of decoder with two residual blocks.
@@ -83,7 +85,7 @@ Through stratified sampling based on the coverage of class 1, 20% of the sub-ima
 ### 1st stage training
 
 * Optimizer: Normalized SGD with cosine annealing learning rate starting from 0.001
-* Loss function: 0.5$\times$ binary cross-entropy loss + 0.5$\times$ Dice loss
+* Loss function: 0.5 x binary cross-entropy loss + 0.5 x Dice loss
 * Batch size: 32
 
 Since a mini-batch with size of 32 cannot be fed into our GPU (GeForce GTX 1080) directly due to its limited memory (8 GB), we set the acutal mini-batch size to be 8. However, we do not update parameters until we acccumulate four mini-batches.[^Keras] 
@@ -111,7 +113,7 @@ In this work, we assume we have no prior knowledge about the expected centers an
 
 <p align="center">
     <img src="https://depts.washington.edu/barc/sites/default/files/styles/medium/public/2019_Deep_learning_Ashsis_project.png" style="width:80%">
-    <em> An example of automatically detected tow boundaries during in-process inspection of composite parts style="width:80%"</em>
+    <em> An example of automatically detected tow boundaries during in-process inspection of composite parts </em>
 </p>
 
 ## Follow-up work
