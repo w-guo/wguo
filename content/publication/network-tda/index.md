@@ -4,7 +4,7 @@ authors:
 - Wei Guo, Ruqian Chen, Yen-Chi Chen and Ashis G. Banerjee
 date: "2020-04-01T00:00:00Z"
 doi: ""
-# featured: false
+featured: true
 links:
 - icon: github
   icon_pack: fab
@@ -17,7 +17,7 @@ publication_types:
 - "3"
 publishDate: ""
 # slides: example
-summary: 
+summary: We develop a framework for analyzing communitity structures in dynamic networks based on the established community tree representation. With the information revealed by community trees and the corresponding persistence diagrams, our proposed approach can efficiently detect clique communities and keep track of the major structural changes during their evolution given a stability threshold.
 tags:
 - Topological data analysis
 - Community tree
