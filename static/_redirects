@@ -1,0 +1,3 @@
+https://wguo.netlify.app/*  https://wguo.rbind.io/:splat  301!
+http://wguo.netlify.app/*   https://wguo.rbind.io/:splat  301!
+http://wguo.rbind.io/*      https://wguo.rbind.io/:splat  301!
