@@ -53,8 +53,8 @@ subtitle = "Featured Publications"
       <p>[+/-] Key figure</p>
     </a>
   </div>
-  <div id="sparse-tda" style="display: none;">
-    <img src="/publication/sparse-tda/Sparse_TDA_pipeline.png" style="width:100%" class="center" />
+  <div id="sparse-tda" style="display: none" align="center">
+    <img src="/publication/sparse-tda/Sparse_TDA_pipeline.png" style="width:100%" />
   </div>
 
   <div class="btn-links">
@@ -102,8 +102,8 @@ subtitle = "Featured Publications"
       <p>[+/-] Key figure</p>
     </a>
   </div>
-  <div id="tn-yield" style="display: none;">
-    <img src="/publication/manufacture-tda/TN_yield.png" style="width:50%" class="center" />
+  <div id="tn-yield" style="display: none" align="center">
+    <img src="/publication/manufacture-tda/TN_yield.png" style="width:60%" />
   </div>
 
   <div class="btn-links">

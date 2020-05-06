@@ -51,8 +51,8 @@ subtitle = "Working Paper"
     given a stability threshold.
     <a href="javascript:void(0)" onclick="return toggle_visibility('sms-evolution');" class="expand"><p>[+/-] Key
       figure</p></a>
-    <div id="sms-evolution" style="display: none;">
-      <img src="/publication/network-tda/sms_evolution.png" style="width: 100%;" class="center" />
+    <div id="sms-evolution" style="display: none" align="center">
+      <img src="/publication/network-tda/sms_evolution.png" style="width: 100%" />
     </div>
 
   <div class="btn-links">
