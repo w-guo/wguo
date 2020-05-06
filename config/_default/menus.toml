@@ -21,6 +21,6 @@
     weight = 30
     
 [[main]]
-  name = "Contact"
+  name = "About / Contact"
   url = "/contact"
   weight = 40

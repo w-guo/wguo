@@ -47,7 +47,7 @@ subtitle = ""
  css_class = "mini"
 +++
 
-I am originally from Heilongjiang, China. My family moved to Suzhou when I was 16. I have been always facinated by the applications of artificial intelligence and the techniques behind it, even since my high school days. This preoccupation led me to major in Control Science and Engineering at [Harbin Institute of Technology](http://en.hit.edu.cn/) (HIT), which is renowned for its Robotics and Aerospace programs. I went on to receive my BS and MS degrees in this field at HIT in 2006 and 2008, respectively.
+I am originally from Heilongjiang, China. My family moved to Suzhou when I was 16. I have been always facinated by the applications of artificial intelligence and the techniques behind it, ever since my high school days. This preoccupation led me to major in Control Science and Engineering at [Harbin Institute of Technology](http://en.hit.edu.cn/) (HIT), which is renowned for its Robotics and Aerospace programs. I went on to receive my BS and MS degrees in this field at HIT in 2006 and 2008, respectively.
 
 
 To further my understanding of control science, I came to the Department of Aerospace Engineering and Mechanics at the [University of Minnesota, Twin Cities](https://twin-cities.umn.edu/), to earn my PhD degree. I was first awarded my MS degree in 2010, where I was advised by Professor Yiyuan Zhao. During my MS studies at the U of M, I focused primarily on [trajectory optimization for unmanned aerial vehicle (UAV) flight](/publication/uav-seeability/) subject to various constraints introduced by UAV performance capabilities and wind effects.
