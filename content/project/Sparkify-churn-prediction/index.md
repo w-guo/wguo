@@ -74,23 +74,22 @@ Group 2 (song-related): artist, length and song
 We use the *Cancellation Confirmation* events of page column to define the customer churn. There are 52 churned users in a total of 225 users in the dataset. That's about 23.1% churn rate.
 
 <p align="center">
-    <img src="gender_latest_level_count.pdf" style="width:100%;">
+    <img src="gender_latest_level_count.png" style="width:100%;">
 </p>
 
 
 <p align="center">
-    <img src="location_count.pdf" style="width:100%;">
+    <img src="location_count.png" style="width:100%;">
     <em> CNN model derived from U-Net</em>
 </p>
 
 ## Feature engineering
 
 <p align="center">
-    <img src="numerical_features_hist.pdf" style="width:100%;">
+    <img src="numerical_features_hist.png" style="width:100%;">
 </p>
-
 <p align="center">
-    <img src="https://github.com/w-guo/wguo/blob/master/content/project/Sparkify-churn-prediction/feature_correlations.pdf" style="width:100%;">
+    <img src="feature_correlations.png" style="width:100%;">
 </p>
 
 From the heatmap above, we find
@@ -101,7 +100,7 @@ From the heatmap above, we find
 ## Modeling and evaluation
 
 <p align="center">
-    <img src="feature_importance.pdf" style="width:80%">
+    <img src="feature_importance.png" style="width:80%">
 </p>
 
 ## Conclusion
