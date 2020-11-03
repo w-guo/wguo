@@ -185,7 +185,7 @@ To gain a better understanding of the feature attributes to the model in predict
 
 It can be seen that the most important feature for identifying churned users is the registration duration which makes sense since it directly reflects a user's willness to stay with the service. Besides, average upgrades and thumbs down given per day that represent a user's strong inclination also play major roles in churn prediction. Another influential feature that helps churn detection is avarage daily advertisements. Intuitively, the more advertisements a user has to watch, the more likely he/she is dissatisfied with the service. 
 
-The result also shows that gender, latest subscription level and each one-hot encoded location feature contribute little to predicting churned users. Nevertheless, we notice that all the top location features have much higher churn rates than the average churn rates.
+The result also shows that gender, latest subscription level and each one-hot encoded location feature contribute little to predicting churned users. Nevertheless, we notice that all the top location features have much higher churn rates than the average churn rate.
 
 ## Conclusion
 
