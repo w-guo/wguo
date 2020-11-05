@@ -7,7 +7,7 @@ links:
 - icon: github
   icon_pack: fab
   name: code
-  url: https://github.com/w-guo/Udacity-DS-Nanodegree/tree/main/Churn-prediction-PySpark
+  url: https://github.com/w-guo/Churn-prediction-PySpark
 
 # slides: example
 summary: Explore the capabilities of Apache Spark's analytics engine for large-scale data processing to detect churn customers.
