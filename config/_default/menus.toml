@@ -24,3 +24,8 @@
   name = "About / Contact"
   url = "/contact"
   weight = 40
+
+[[main]]
+  name = "Posts"
+  url = "/post"
+  weight = 50
