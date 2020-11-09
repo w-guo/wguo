@@ -116,6 +116,33 @@ h1 {
 /* code */
 /* https://github.com/rstudio/blogdown/blob/master/docs/02-hugo.Rmd */
 
+/* Code folding */
+
+/* Each code block button */
+.code-folding-btn { 
+  margin-bottom: 4px; 
+float: right;
+}
+.row { 
+  display: flex;
+  border-bottom: solid 1px #d7d7d7;
+}
+.col-md-12 {
+  margin: 0 0 0 auto;
+}
+
+/* Main show/hide button */
+#code-folding-buttons {float: right;}
+
+#code-folding-buttons .dropdown-menu {
+  min-width: 80px;
+  padding: 5px 0;
+  margin: 2px 0 0;
+  font-size: 14px;
+}
+
+/* End code folding */
+
 /* alerts */
 
 div.alert-note > div:first-child::before {
