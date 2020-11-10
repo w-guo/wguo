@@ -1,8 +1,8 @@
 ---
-title: Customer Churn Prediction using PySpark
+title: Customer Churn Prediction for Sparkify using PySpark
 author: ~
 date: '2020-11-09'
-slug: Customer Churn Prediction using PySpark
+slug: Sparkify-churn-prediction
 categories: []
 tags:
 - Machine learning
