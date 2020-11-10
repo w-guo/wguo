@@ -171,14 +171,18 @@ projects: []
 </div>
 <div id="data-cleaning" class="section level3">
 <h3>Data cleaning</h3>
-<p>After checking null values, we notice variables with null values can be divided into two groups, i.e.: * Group 1 (user-related): firstName, gender, lastName, location, registration and userAgent * Group 2 (song-related): artist, length and song</p>
+<p>After checking null values, we notice variables with null values can be divided into two groups, i.e.:</p>
+<ul>
+<li>Group 1 (user-related): <strong>firstName</strong>, <strong>gender</strong>, <strong>lastName</strong>, <strong>location</strong>, <strong>registration</strong> and <strong>userAgent</strong></li>
+<li>Group 2 (song-related): <strong>artist</strong>, <strong>length</strong> and <strong>song</strong></li>
+</ul>
 <p>It seems variables in each group are tied in a certain way with nulls. With more data wrangling, we find:</p>
 <ul>
 <li>When <strong>auth</strong> is <em>LoggedOut</em>, variable values in both groups are nulls and values in <strong>userId</strong> are empty strings.</li>
 <li>All the rows with missing values in the <strong>userId</strong> column and all other user-related columns correspond to <em>Logged Out</em> or <em>Guest</em> authentication levels.</li>
 <li>Variable values in Group 2 are nulls whenever <strong>page</strong> is not <em>NextSong</em>, which makes sense since these variables are song-related.</li>
 </ul>
-<p>We then remove the records when the <strong>userId</strong> is an empty string. Additionally, we replace the <strong>location</strong> column by the corresponding state name to simplify the location-related analysis. If the location links to multiple states, we select the first state to represent the user’s location.</p>
+<p>Based on our observations above, we only need to remove the records when the <strong>userId</strong> is an empty string. Additionally, we replace the <strong>location</strong> column by the corresponding state name to simplify the location-related analysis. If the location links to multiple states, we select the first state to represent the user’s location.</p>
 <pre class="python"><code>def clean_data(df):
     &quot;&quot;&quot;Clean a Sparkify dataset in the form of the Spark dataframe 
     
@@ -289,7 +293,12 @@ user_df = user_df \
 <img src="numerical_features_hist.png" style="width:100.0%" />
 
 </div>
-<p>By comparing the numerical feature distributions between churned users and unchurned ones, we have the following observations: * Churned users have a shorter registration duration on average. * Churned users give more thumbs down, need more help, and have to watch more advertisements per day. * There is no significant difference between churned and unchurned users in terms of average session duration and average daily error.</p>
+<p>By comparing the numerical feature distributions between churned users and unchurned ones, we have the following observations:</p>
+<ul>
+<li>Churned users have a shorter registration duration on average.</li>
+<li>Churned users give more thumbs down, need more help, and have to watch more advertisements per day.</li>
+<li>There is no significant difference between churned and unchurned users in terms of average session duration and average daily error.</li>
+</ul>
 <div id="feature-correlation" class="section level3">
 <h3>Feature correlation</h3>
 <p>Before we start modeling, we also need to understand the correlation between the response variable and the features as well as the correlation between the features.</p>
@@ -312,7 +321,7 @@ sns.heatmap(cor_mat, cmap=sns.diverging_palette(240, 20, as_cmap=True), annot=Tr
 <li><p><strong>Churn</strong> doesn not appear to have strong correlations with any features. <strong>registDuration</strong> is negatively correlated with <strong>Churn</strong> while <strong>avgDaily</strong> has the highest positive correlation with <strong>Churn</strong>. It also shows that <strong>gender</strong>, <strong>latestLevel</strong>, <strong>avgSessionDuration</strong> and <strong>avgDailyError</strong> all have very low correlation with <strong>Churn</strong>. This is consistent with our previous findings through direct visualization. However, the Pearson correlation assumes a linear relationship, and a low correlation simply means that there is no linear relationship between these features and the response variable. The data might still have a nonlinear relationship and should be included in the modeling for now.</p></li>
 </ul>
 <pre class="python"><code>feat_df = user_df.drop(&#39;userId&#39;, &#39;avgDailySongs&#39;, &#39;avgDailyThumbsUp&#39;, 
-                       &#39;avgDailyDowngrade&#39;, &#39;avgDailyAddFriend&#39;, &#39;avgDailyHelp&#39;)</code></pre>
+                      &#39;avgDailyDowngrade&#39;, &#39;avgDailyAddFriend&#39;, &#39;avgDailyHelp&#39;)</code></pre>
 </div>
 <div id="feature-transformation" class="section level3">
 <h3>Feature transformation</h3>
@@ -372,7 +381,7 @@ val = train_val.subtract(train)</code></pre>
 <h3>Model selection</h3>
 <p>We select three binary classifiers supported in Spark as candidate models: logistic regression, random forest classifier and gradient-boosted tree classifier. Both random forest and gradient-boosted techniques employ an ensemble of decision trees (base estimators) to improve the predictive capability over a single estimator. The difference is random forest builds several estimators independently and then average their predictions, while gradient-boosted tree buils base estimators sequentially to generate a powerful ensemble. The predictions from the three models on the validation set without tuning are demonstrated below:</p>
 <pre class="python"><code># logistic regression
-lr = LogisticRegression(featuresCol=&#39;features&#39;, labelCol=&#39;Churn&#39;)
+lr = LogisticRegression(featuresCol=&#39;features&#39;, labelCol=&#39;Churn&#39;, seed=2020)
 lr_model = lr.fit(train)
 
 # random forest classifier
@@ -394,10 +403,12 @@ for model_name, model in model_dict.items():
     # compute f1 score
     f1_score_evaluator = MulticlassClassificationEvaluator(labelCol=&#39;Churn&#39;, metricName=&#39;f1&#39;)
     f1_score = f1_score_evaluator.evaluate(val_prediction.select(&#39;Churn&#39;, &#39;prediction&#39;))
+    print(&#39;F1 score for {} on validation set: {:.3f}&#39;.format(model_name, f1_score))
     
     # compute area under PR curve
     auc_evaluator = BinaryClassificationEvaluator(labelCol=&#39;Churn&#39;)
-    auc_pr = auc_evaluator.evaluate(val_prediction, {auc_evaluator.metricName:&#39;areaUnderPR&#39;})</code></pre>
+    auc_pr = auc_evaluator.evaluate(val_prediction, {auc_evaluator.metricName:&#39;areaUnderPR&#39;})
+    print(&#39;Area under PR curve for {} on validation set: {:.3f}\n&#39;.format(model_name, auc_pr))</code></pre>
 <center>
 <div style="width:60%;">
 <table>
@@ -535,5 +546,5 @@ importances = list(cv_rf.bestModel.featureImportances)</code></pre>
 </div>
 <div id="conclusion" class="section level2">
 <h2>Conclusion</h2>
-<p>In this project, we manage to build a RF classifier that can accurately identify churned users. Since the dataset is relatively clean, the most critical step in the model development process is feature engineering. It has been proved most of the engineered features based on user behaviors play vital roles in churn prediction. For further imporvements, we can test more engineered features that capture the insights about users’ activity patterns and trends. In addtion, a latent issue with our current modeling is that we have 49 features for a dataset with only 225 sample, which may potentially cause the curse of dimensionality. From the analysis of feature importance, we can safely reduce the number of features by discarding most of encoded location featues before feeding them into the model.</p>
+<p>In this project, we manage to build a random forest classifier that can accurately identify churned users. Since the dataset is relatively clean, the most critical step in the model development process is feature engineering. It has been proved most of the engineered features based on user behaviors play vital roles in churn prediction. For further imporvements, we can test more engineered features that capture the insights about users’ activity patterns and trends. In addtion, a latent issue with our current modeling is that we have 49 features for a dataset with only 225 sample, which may potentially cause the curse of dimensionality. From the analysis of feature importance, we can safely reduce the number of features by discarding most of encoded location featues before feeding them into the model.</p>
 </div>

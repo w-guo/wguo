@@ -76,8 +76,9 @@ Since there is no documentation provided alongside the datasets, we first have t
 ### Data cleaning
 
 After checking null values, we notice variables with null values can be divided into two groups, i.e.:
-* Group 1 (user-related): firstName, gender, lastName, location, registration and userAgent
-* Group 2 (song-related): artist, length and song
+
+* Group 1 (user-related): **firstName**, **gender**, **lastName**, **location**, **registration** and **userAgent**
+* Group 2 (song-related): **artist**, **length** and **song**
 
 It seems variables in each group are tied in a certain way with nulls. With more data wrangling, we find:
 
@@ -85,7 +86,7 @@ It seems variables in each group are tied in a certain way with nulls. With more
 * All the rows with missing values in the **userId** column and all other user-related columns correspond to *Logged Out* or *Guest* authentication levels.
 * Variable values in Group 2 are nulls whenever **page** is not *NextSong*, which makes sense since these variables are song-related.
 
-We then remove the records when the **userId** is an empty string. Additionally, we replace the **location** column by the corresponding state name to simplify the location-related analysis. If the location links to multiple states, we select the first state to represent the user's location.
+Based on our observations above, we only need to remove the records when the **userId** is an empty string. Additionally, we replace the **location** column by the corresponding state name to simplify the location-related analysis. If the location links to multiple states, we select the first state to represent the user's location.
 ```python
 def clean_data(df):
     """Clean a Sparkify dataset in the form of the Spark dataframe 
@@ -201,6 +202,7 @@ An overall look at the first three categorical feaures indicates:
 ![](numerical_features_hist.png){width=100%}
 
 By comparing the numerical feature distributions between churned users and unchurned ones, we have the following observations:
+
 * Churned users have a shorter registration duration on average.
 * Churned users give more thumbs down, need more help, and have to watch more advertisements per day.
 * There is no significant difference between churned and unchurned users in terms of average session duration and average daily error.
@@ -230,7 +232,7 @@ From the heatmap above, we find
 
 ```python
 feat_df = user_df.drop('userId', 'avgDailySongs', 'avgDailyThumbsUp', 
-                       'avgDailyDowngrade', 'avgDailyAddFriend', 'avgDailyHelp')
+                      'avgDailyDowngrade', 'avgDailyAddFriend', 'avgDailyHelp')
 ```
 
 ### Feature transformation
@@ -296,7 +298,7 @@ We choose to use the **f1 score** as a performance metric since our dataset is i
 We select three binary classifiers supported in Spark as candidate models: logistic regression, random forest classifier and gradient-boosted tree classifier. Both random forest and gradient-boosted techniques employ an ensemble of decision trees (base estimators) to improve the predictive capability over a single estimator. The difference is random forest builds several estimators independently and then average their predictions, while gradient-boosted tree buils base estimators sequentially to generate a powerful ensemble. The predictions from the three models on the validation set without tuning are demonstrated below:
 ```python
 # logistic regression
-lr = LogisticRegression(featuresCol='features', labelCol='Churn')
+lr = LogisticRegression(featuresCol='features', labelCol='Churn', seed=2020)
 lr_model = lr.fit(train)
 
 # random forest classifier
@@ -318,10 +320,12 @@ for model_name, model in model_dict.items():
     # compute f1 score
     f1_score_evaluator = MulticlassClassificationEvaluator(labelCol='Churn', metricName='f1')
     f1_score = f1_score_evaluator.evaluate(val_prediction.select('Churn', 'prediction'))
+    print('F1 score for {} on validation set: {:.3f}'.format(model_name, f1_score))
     
     # compute area under PR curve
     auc_evaluator = BinaryClassificationEvaluator(labelCol='Churn')
     auc_pr = auc_evaluator.evaluate(val_prediction, {auc_evaluator.metricName:'areaUnderPR'})
+    print('Area under PR curve for {} on validation set: {:.3f}\n'.format(model_name, auc_pr))
 ```
 
 <center>
@@ -408,5 +412,5 @@ The result also shows that gender, latest subscription level and each one-hot en
 
 ## Conclusion
 
-In this project, we manage to build a RF classifier that can accurately identify churned users. Since the dataset is relatively clean, the most critical step in the model development process is feature engineering. It has been proved most of the engineered features based on user behaviors play vital roles in churn prediction. For further imporvements, we can test more engineered features that capture the  insights about users' activity patterns and trends. In addtion, a latent issue with our current modeling is that we have 49 features for a dataset with only 225 sample, which may potentially cause the curse of dimensionality. From the analysis of feature importance, we can safely reduce the number of features by discarding most of encoded location featues before feeding them into the model.
+In this project, we manage to build a random forest classifier that can accurately identify churned users. Since the dataset is relatively clean, the most critical step in the model development process is feature engineering. It has been proved most of the engineered features based on user behaviors play vital roles in churn prediction. For further imporvements, we can test more engineered features that capture the  insights about users' activity patterns and trends. In addtion, a latent issue with our current modeling is that we have 49 features for a dataset with only 225 sample, which may potentially cause the curse of dimensionality. From the analysis of feature importance, we can safely reduce the number of features by discarding most of encoded location featues before feeding them into the model.
 
