@@ -113,15 +113,12 @@ h1 {
   background-color: #282a36;
 }
 
-/* code */
-/* https://github.com/rstudio/blogdown/blob/master/docs/02-hugo.Rmd */
-
 /* Code folding */
 
 /* Each code block button */
 .code-folding-btn { 
   margin-bottom: 4px; 
-float: right;
+  float: right;
 }
 .row { 
   display: flex;
