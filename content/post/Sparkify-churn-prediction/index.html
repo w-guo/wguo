@@ -299,7 +299,7 @@ user_df = user_df \
         .withColumn(&#39;avgDailyError&#39;, col(&#39;nError&#39;) / col(&#39;obsDays&#39;)) \
         .drop(&#39;userId&#39;, &#39;obsDays&#39;, &#39;nSongs&#39;, &#39;nThumbsUp&#39;, &#39;nThumbsDown&#39;, &#39;nUpgrade&#39;, &#39;nDowngrade&#39;, \
               &#39;nAddFriend&#39;, &#39;nAddPlaylist&#39;, &#39;nAdvert&#39;, &#39;nHelp&#39;, &#39;nError&#39;)</code></pre>
-<p><img src="gender_latest_level_count.png" style="width:80.0%" /> <img src="location_count.png" style="width:80.0%" /></p>
+<p><img src="gender_latest_level_count.png" style="width:80.0%" /> #<img src="location_count.png" style="width:80.0%" /></p>
 <p>An overall look at the first three categorical feaures indicates:</p>
 <ul>
 <li>The churn rates are only slightly higher for male users and free users</li>
@@ -551,16 +551,15 @@ feat_imp_pd = pd.DataFrame({&#39;feature&#39;: features, &#39;importance&#39;: i
 sns.barplot(data=feat_imp_pd.head(15), y=&quot;feature&quot;, x=&quot;importance&quot;, palette=&#39;Blues_r&#39;, zorder=2)
 plt.grid(axis=&#39;x&#39;, linestyle=&#39;--&#39;, zorder=0)
 plt.ylabel(&#39;&#39;);</code></pre>
-<div class="figure">
-<img src="feature_importance.png" style="width:80.0%" />
-
 </div>
+</div>
+<div id="section" class="section level1">
+<h1><img src="feature_importance.png" style="width:80.0%" /></h1>
 <p>It can be seen that the most important feature for identifying churned users is the registration duration which makes sense since it directly reflects a user’s willness to stay with the service. Another influential feature that plays a major role in churn prediction is avarage daily advertisements. Intuitively, the more advertisements a user has to watch, the more likely he/she is dissatisfied with the service. Besides, average upgrades and thumbs down given per day that represent a user’s strong inclination also help churn detection.</p>
 <p>The result also shows that gender, latest subscription level and each location feature contribute little to predicting churned users. Nevertheless, we notice that the churn rates of top location features, sch as those of New England and east south central areas are far different from the average churn rate.</p>
-</div>
-</div>
 <div id="conclusion" class="section level2">
 <h2>Conclusion</h2>
 <p>In this project, we manage to build a random forest classifier that can accurately identify churned users. Since the dataset is relatively clean, the most critical step in the model development process is feature engineering. It has been proved most of the engineered features based on user behaviors play vital roles in churn prediction. As for model selection, the tuned random forest model with 100 trees and a max tree depth of 4 achieves the best result with an overall f1 score of 0.86. Currently, we are able to target 60% of churned users and provide them with special offers in the hope of keeping them from deleting their Sparkify accounts. On the other hand, 25% of the customers who will receive special offers did not plan to discontinue the service and thus, would not need any special treatment. We need to emphasize that these results correspond to models that were only trained on 181 users and tested on 44 users with 10 positive cases. We expect the machine learning pipeline we develop here will generate better results with more training data in a full Sparkify dataset.</p>
 <p>For further imporvements, we can test more engineered features that capture the insights about users’ activity patterns and trends. In addtion, we can apply PCA to input features before feeding them to training. PCA allows us to reduce the number of features and decorrelate them, which often helps to improve the performance of the model downstream.</p>
+</div>
 </div>
