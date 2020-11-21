@@ -29,10 +29,8 @@ Predicting customer churn is a challenging and common problem for any e-commerce
     + [Data cleaning](#data-cleaning)
 * **[Feature engineering and exploratory data analysis ](#feature-engineering-and-exploratory-data-analysis)**
     + [Feature correlation](#feature-correlation)
-    + [Feature transformation](#feature-transformation)
 * **[Modeling and evaluation](#modeling-and-evaluation)**
     + [Performance metrics](#performance-metrics)
-    + [Model selection](#model-selection)
     + [Hyperparameter tuning](#hyperparameter-tuning)
     + [Feature importance](#feature-importance)
 * **[Conclusion](#conclusion)**
@@ -104,10 +102,9 @@ def clean_data(df):
         .withColumn('registrationTime', to_timestamp(col('registration')/1000)) \
         .withColumn('time', to_timestamp(col('ts')/1000)) 
     
-    # replace location with extracted state 
-    df = df \
-        .withColumn('location', split(col('location'),',').getItem(1)) \
-        .withColumn('location', split(col('location'), '-').getItem(0))
+    # replace location with first listed state 
+    state_udf = udf(lambda x: x.split(', ')[1].split('-')[0])
+    df = df.withColumn('location', state_udf('location'))
         
     return df
 ```
@@ -132,14 +129,33 @@ By this definition, there are 52 churned users in a total of 225 users in the da
 * **avgSessionDuration**: user's average session duration (in hours)
 * **avgDailySongs**, **avgDailyThumbsUp**, **avgDailyThumbsDown**, **avgDailyUpgrade**, **avgDailyDowngrade**, **avgDailyAddFriend**, **avgDailyAddPlaylist**, **avgDailyAdvert**, **avgDailyHelp**, **avgDailyError**: user's average daily songs played, thumbs up given, thumbs down given, upgrades, downgrades, friends added, songs added to playlist, advertisements played, help page visits, errors encountered, respectively
 
-In this list, only **gender** and **location** are given in the dataset and we need to engineer the rest of them.
+In this list, gender and location represent a user's demographic information. We notice Spakify's users reside across 41 states. If we one hot encode the location feature, we will add 40 binary columns to a dataset with only 225 samples, which may potentially cause the curse of dimensionality. To address this issue, we replace each state by its corresponding geographical division (data source: https://www2.census.gov/geo/pdfs/maps-data/maps/reference/us_regdiv.pdf) so that 41 states are assigned to 9 divisions.
+```python
+region_df = spark.read.csv('us_regions.csv', header=True)
+
+# find the user's geographical division based on the location
+division_udf = udf(lambda x: 'location' + x.replace(' ', ''))
+
+location_df = df.select(['userId', 'location']).dropDuplicates(['userId'])
+location_df = location_df.join(region_df, location_df['location']==region_df["State Code"], how='left') \
+            .select(['userId', col("Division").alias("location")]) \
+            .withColumn('location', division_udf('location'))
+
+# one hot encode the 'location' column by pivoting it 
+location_df = location_df.groupBy('userId').pivot('location').agg(count('location').cast(IntegerType())).fillna(0)
+# remove the last column (or any one) to keep the binary columns independent
+location_df = location_df.drop(location_df.columns[-1]) 
+```
+Now we engineer the rest of the features, all of which are related to a user's behavior.
+
 ```python
 # find the latest level of each user
 df = df.withColumn('latestLevel', last(col('level')).over(userWindow))
 
-# calculate the number of days between registration to last activity 
-df = df.withColumn('registDuration', ((last(col('ts')).over(userWindow)-col('registration'))/1000/3600/24).cast(IntegerType()))
-
+# calculate the duration between registration to last activity (in days)
+regist_duration_df = df.groupBy('userId') \
+                    .agg(((last(col('ts'))-last(col('registration')))/1000/3600/24).alias('registDuration'))
+                    
 # compute average session duration (in hours)
 avg_session_duration_df = df \
     .groupby(['userId', 'sessionId']).agg(min(col('ts')).alias('session_start'), max(col('ts')).alias('session_end'))\
@@ -176,6 +192,8 @@ user_df = df.groupBy('userId') \
                  sum(when(col('page') == 'Roll Advert', 1).otherwise(0)).alias('nAdvert'), \
                  sum(when((col('page') == 'Help'), 1).otherwise(0)).alias('nHelp'), \
                  sum(when((col('page') == 'Error'), 1).otherwise(0)).alias('nError')) \
+            .join(location_df, on='userId') \
+            .join(regist_duration_df, on='userId') \
             .join(avg_session_duration_df, on='userId')
 
 user_df = user_df \
@@ -198,7 +216,7 @@ user_df = user_df \
 An overall look at the first three categorical feaures indicates:
 
 * The churn rates are only slightly higher for male users and free users
-* The churn rates differ greatly among 41 states. For example, NC has a very low churn rate while there are more churned users than unchurned ones in MI and MS
+* The churn rates differ greatly among divisions. For example, New England area has zero churn rate while there are as many churned users as unchurned ones in east south central area.
 
 ![](numerical_features_hist.png){width=100%}
 
@@ -210,124 +228,160 @@ By comparing the numerical feature distributions between churned users and unchu
 
 ### Feature correlation
 
-Before we start modeling, we also need to understand the correlation between the response variable and the features as well as the correlation between the features. 
+Before we start modeling, we also need to understand the correlation between the response variable and the features as well as the correlation between the features. The **Correlation** function in the **ml.stat** subpackage requires a column of type Vector. Thus, we need to convert the columns into a vector column first and then apply the correlation.
 ```python
-user_df_pd = user_df.toPandas()
-# calculate correlations across features (except 'location')
-cor_mat = user_df_pd[['gender', 'latestLevel','registDuration', 'avgSessionDuration',
-                     'avgDailySongs', 'avgDailyThumbsUp', 'avgDailyThumbsDown', 'avgDailyUpgrade', 
-                     'avgDailyDowngrade', 'avgDailyAddFriend','avgDailyAddPlaylist',
-                     'avgDailyAdvert', 'avgDailyHelp', 'avgDailyError', 'Churn']].corr()
+vec_col = 'corr_features'
+   
+# assemble all vector columns into one vector column
+assembler = VectorAssembler(inputCols=user_df.columns, outputCol=vec_col)
+corr_df = assembler.transform(user_df).select(vec_col)
+
+# compute the correlation between 'churn' and every feature and the correlation between each pair of features
+corr_mat = Correlation.corr(corr_df, vec_col)
+# convert the corrlation matrix to a pandas dataframe with column names
+corr_values = corr_mat.collect()[0][0].values
+corr_mat_pd = pd.DataFrame(corr_values.reshape(-1, len(user_df.columns)), \
+                           index=user_df.columns, columns=user_df.columns)
 
 # plot feature correlations
-sns.heatmap(cor_mat, cmap=sns.diverging_palette(240, 20, as_cmap=True), annot=True, square=True, vmin=-1, vmax=1)
+sns.heatmap(corr_mat_pd, vmin=-1, vmax=1, cmap=sns.diverging_palette(240, 20, as_cmap=True), 
+            linewidths=.5, cbar_kws={"shrink": .5}, square=True)
 ```
 
 ![](feature_correlations.png){width=80%}
 
 From the heatmap above, we find
 
-* There is a high correlation between most of the page event activities. For example, variables **avgDailySongs**, **avgDailyThumbsUp**, **avgDailyDowngrade**, **avgDailyAddFriend**, **avgDailyAddPlaylist** and **avgDailyHelp** are almost perfectly coupled. To avoid multicolinearity in the data, we only retain **avgDailyAddPlaylist** here (as it has the highest correlation with **Churn**). 
+* Many page event activities, such as **avgDailySongs**, **avgDailyThumbsUp**, **avgDailyDowngrade**, **avgDailyAddFriend**, **avgDailyAddPlaylist** and **avgDailyHelp**, are highly correlated. To avoid multicollinearity in the data, we only retain **avgDailyAddPlaylist** here (as it has the highest correlation with **Churn**). On the other hand, location features are weakly correlated with each other.
 
-* **Churn** doesn not appear to have strong correlations with any features.  **registDuration** is negatively correlated with **Churn** while **avgDaily** has the highest positive correlation with **Churn**. It also shows that **gender**, **latestLevel**, **avgSessionDuration** and **avgDailyError** all have very low correlation with **Churn**. This is consistent with our previous findings through direct visualization. However, the Pearson correlation assumes a linear relationship, and a low correlation simply means that there is no linear relationship between these features and the response variable. The data might still have a nonlinear relationship and should be included in the modeling for now. 
+* **Churn** doesn not appear to have strong correlations with any features.  **registDuration** is negatively correlated with **Churn** while **avgDailyAdvert** has the highest positive correlation with **Churn**. It also shows that **gender**, **latestLevel**, **avgSessionDuration**, **avgDailyError** and many location features all have very low correlation with **Churn**. This is consistent with our previous findings through direct visualization. However, the Pearson correlation assumes a linear relationship, and a low correlation simply means that there is no linear relationship between these features and the response variable. The data might still have a nonlinear relationship and should be included in the modeling for now. 
 
-```python
-# drop highly correlated features
-feat_df = user_df.drop('avgDailySongs', 'avgDailyThumbsUp', 'avgDailyDowngrade', 'avgDailyAddFriend', 'avgDailyHelp')
-```
-
-### Feature transformation
-
-Spark MLlib requires that the features are formatted as a single vector. Therefore, we create a data pipeline using Spark's **Pipeline** function to transfrom and vectorize features before we feed them into training. The steps involved in this pipeline include: 
-
-* One hot encode **location** by dummy binary columns
-* Scale each numberical feature within the range [0,1] 
-* Assemble all features into one vector column
+The code that automates the removal of highly correlated features is shown below:
 
 ```python
-cat_cols=['gender', 'location', 'latestLevel']
-label=['Churn']
+# construct an adjacency matrix where high correlation (> 0.85) is labeled as 1, otherwise 0
+is_high_corr = corr_mat_pd.values > 0.85
+adj_mat = csr_matrix(is_high_corr.astype(int) - np.identity(len(user_df.columns)))
 
-# get numerical columns
-num_cols = []
-for field in feat_df.schema.fields :
-    if field.name not in cat_cols + label:
-        num_cols.append(field.name)
+# find groups of highly correlated features by finding the connected components in the adjacency matrix
+_, corr_labels = connected_components(csgraph=adj_mat, directed=False)
+unique, unique_counts = np.unique(corr_labels, return_counts=True)
+# get groups with size > 1
+high_corr_labels = unique[unique_counts > 1]
 
-# convert categorical columns to index columns
-indexers = [StringIndexer(inputCol=c, outputCol='{}_indexed'.format(c)) for c in cat_cols]
-    
-# one hot encode each categorical column by dummy numerical columns
-encoders = [OneHotEncoder(inputCol=indexer.getOutputCol(), 
-                          outputCol='{}_encoded'.format(indexer.getOutputCol())) 
-            for indexer in indexers]
-    
-# assemble numerical columns to a single vector column 
-num_assembler = VectorAssembler(inputCols=num_cols, outputCol='num_features')
-    
-# scale each numberical feature within the range [0,1] 
-scaler = MinMaxScaler(inputCol='num_features', outputCol='scaled_features')
-    
-# assemble all vector columns into one vector column
-assembler = VectorAssembler(inputCols=[encoder.getOutputCol() for encoder in encoders] + ['scaled_features'], 
-                            outputCol='features')
-
-# create a pipeline with steps above 
-data_pipeline = Pipeline(stages=indexers + encoders + [num_assembler, scaler, assembler])
-model_df = data_pipeline.fit(feat_df).transform(feat_df)
+# if there is at least one group of highly correlated features
+if len(high_corr_labels) > 0:
+    # map the label indices of highly correlated features to their column names
+    print('Highly correlated features include:')
+    high_corr_col_dict = {}
+    for high_corr_label in high_corr_labels:
+        high_corr_col_dict[high_corr_label] = [col_name for corr_label, col_name in zip(corr_labels, user_df.columns) 
+                                               if corr_label == high_corr_label]
+        print(high_corr_col_dict[high_corr_label])
+        
+    print('\nFeatures to keep:')
+    cols_to_drop = []
+    for col_name_list in high_corr_col_dict.values(): 
+        # keep the feature that has the highest correlation with 'Churn'
+        col_to_keep = corr_mat_pd.loc[col_name_list,'Churn'].idxmax()
+        print(col_to_keep)
+        # remove the other features to avoid multicollinearity 
+        col_name_list.remove(col_to_keep)
+        corr_mat_pd.drop(index=col_name_list, columns=col_name_list, inplace=True)
+        cols_to_drop.extend(col_name_list)
+        
+model_df = user_df.drop(*cols_to_drop)
 ```
-Now a vector of 49 features is ready to be used for modeling. 
+Now a total of 10 binary features and 7 numerical features are ready for modeling as inputs.
 
 ## Modeling and evaluation
 
-We randomly split the entire dataset into a training and a test set in 8:2 ratio using stratified sampling based on **Churn**.
+We first randomly split the entire dataset into a training and a test set in 8:2 ratio using stratified sampling based on **Churn**.
 ```python
 # split the data into train, validation and test sets using stratified sampling based on 'Churn'
 train = model_df.sampleBy('Churn', fractions={0: 0.8, 1: 0.8}, seed=2020)
 test = model_df.subtract(train_val)
 ```
-Using Spark's **sampleBy** function, the training, validation and test set now consists of 161, 20 and 44 users, respectively. Notice the training and validation set do not follow a 75/25 split since Spark's sampleBy function does not guarantee an exact split to the weights (fluctuations often happen if number of records is low). It only guarantees that each object has equal probability to be assigned to a specific subset.
+We select three binary classifiers supported in Spark as candidate models: logistic regression, random forest classifier and gradient-boosted tree classifier. Both random forest and gradient-boosted techniques employ an ensemble of decision trees (base estimators) to improve the predictive capability over a single estimator. The difference is random forest builds several estimators independently and then average their predictions, while gradient-boosted tree buils base estimators sequentially to generate a powerful ensemble.
 
 ### Performance metrics
 
-We choose to use the **f1 score** as a performance metric since our dataset is imbalanced. Another metric we look at is the **area under the precision-recall curve (AUC-PR)**. For binary classifier evaluation, precision-recall curves are more useful in practice than the receiver operating characteristic (ROC) curves for problems where the "positive" class is more of interest than the negative class. See: http://pages.cs.wisc.edu/~jdavis/davisgoadrichcamera2.pdf 
-
-### Model selection
-
-We select three binary classifiers supported in Spark as candidate models: logistic regression, random forest classifier and gradient-boosted tree classifier. Both random forest and gradient-boosted techniques employ an ensemble of decision trees (base estimators) to improve the predictive capability over a single estimator. The difference is random forest builds several estimators independently and then average their predictions, while gradient-boosted tree buils base estimators sequentially to generate a powerful ensemble. The predictions from the three models on the validation set without tuning are demonstrated below:
+We choose to use the **f1 score** as a performance metric since our dataset is imbalanced. The f1 score is the harmonic mean of the precision and recall. Spark's **MulticlassClassificationEvaluator** module in the **ml.evaluation** subpackage only provides weighted f1 score, precision and recall metrics. For an imbalanced dataset dominated by the negative class, the weighted metrics will inflate the corresponding metrics from the positive class which we are more interested in. For this reason, we employ the **MulticlassMetrics** module from Spark's **mllib.evaluation** subpackage to calculate these metrics for each class. Another metric we look at is the **area under the precision-recall curve (AUC-PR)**. For binary classifier evaluation, precision-recall curves are more useful in practice than the receiver operating characteristic (ROC) curves for problems where the "positive" class is more of interest than the negative class. See: http://pages.cs.wisc.edu/~jdavis/davisgoadrichcamera2.pdf 
 ```python
+def print_metrics(pred, label='Churn'):
+    """Print evaluation metrics on a test set
+    
+    Args:
+    pred: (spark dataframe) a test set 
+    
+    Returns:
+    summary: (pandas dataframe) a summary of evaluation metrics
+    """
+    eval_metrics = {}
 
+    # compute area under PR curve
+    evaluator = BinaryClassificationEvaluator(labelCol=label)
+    auc_pr = evaluator.evaluate(pred, {evaluator.metricName:'areaUnderPR'})
 
+    # compute precision, recall and f1 score
+    predictionAndLabels = pred.select('prediction', label)
+    # both 'prediction' and label in predictionAndLabels need to be cast to float type and 
+    # map to tuple before calling 'MulticlassMetrics'
+    metrics = MulticlassMetrics(predictionAndLabels.rdd.map(lambda x: tuple(map(float, x))))
+
+    # get overall statistics
+    eval_metrics['overall'] = [metrics.weightedPrecision, metrics.weightedRecall, \
+                               metrics.weightedFMeasure(), auc_pr]
+                               
+    # get statistics by class
+    classes = [0.0, 1.0]
+    for cls in classes:
+        eval_metrics['class ' + str(int(cls))] = [metrics.precision(cls), metrics.recall(cls), \
+                                                  metrics.fMeasure(cls), '']
+
+    # convert to a pandas dataframe for display
+    summary = pd.DataFrame.from_dict(eval_metrics, orient='index', \
+                                     columns=['precision', 'recall', 'f1 score', 'AUC-PR'])   
+    
+    return summary
 ```
-
-The results show that the random forest classifier outperforms both the logistic regression model and the gradient-boosted tree classifier in terms of f1 score and training time. The gradient-boosted tree classifier only performs marginally better than the random forest classifer in AUC-PR. As aforementioned, the features and the response variable do not follow a linear relationship, which suggest that a non-linear model might be more suited to the data.
 
 ### Hyperparameter tuning
 
-We decide to tune the random forest model to see if we can improve it further. We performe a grid search with 4-fold cross validation to test the performance of several parameter combinations.
+The search spaces of hyperparameters for the three models are listed below:
+
+* **Logistic Regression**
+    - *maxIter* (maximum number of iterations, default=100): [10, 30]
+    - *regParam* (regularization parameter, default=0.0): [0.0, 0.1]
+    - *elasticNetParam* (mixing parameter - 0 for L2 penalty, 1 for L1 penalty, default=0.0: [0.0, 0.5]
+
+* **Random Forest Classifier**
+    - *maxDepth* (maximum tree depth, default=5): [4, 5]
+    - *numTrees* (number of trees, default=20): [20, 100, 200]
+
+* **Gradient-Boosted Tree Classifier**
+    - *maxDepth* (maximum tree depth, default=5): [4, 5]
+    - *maxIter* (maximum number of iterations, default=20): [20, 100]
+
+We perform a grid search with 4-fold cross validation to test the performance of these hyperparameter combinations measured by **AUC-PR**. An advantage of using AUC-PR is that one does not need to worry about optimizing the probability threshold that splits the model outputs into positive and negative predictions, as it summarizes the model performance over all possible thresholds.
 ```python
 # set hyperparameters for tuning
 paramGrid = ParamGridBuilder() \
-            .addGrid(rf.numTrees, [20, 40]) \
-            .addGrid(rf.maxDepth, [4, 5, 6]) \
+            .addGrid(rf.numTrees, [20, 100, 200]) \
+            .addGrid(rf.maxDepth, [4, 5]) \
             .build()  
 
 # grid search with cross validation    
-crossval = CrossValidator(estimator = rf,
-                          estimatorParamMaps = paramGrid,
-                          evaluator = MulticlassClassificationEvaluator(labelCol='Churn', metricName='f1'),
-                          numFolds = 4)
+crossval_rf = CrossValidator(estimator = pipeline_rf,
+                             estimatorParamMaps = paramGrid,
+                             evaluator = BinaryClassificationEvaluator(labelCol='Churn', metricName='areaUnderPR'),
+                             numFolds = 4)
 
-cv_rf = crossval.fit(train_val)
+cv_rf = crossval_rf.fit(train)
 test_prediction = cv_rf.transform(test)
-
-f1_score_evaluator = MulticlassClassificationEvaluator(labelCol='Churn', metricName='f1')
-f1_score = f1_score_evaluator.evaluate(test_prediction.select('Churn', 'prediction'))
-
-auc_evaluator = BinaryClassificationEvaluator(labelCol='Churn')
-auc_pr = auc_evaluator.evaluate(test_prediction, {auc_evaluator.metricName:'areaUnderPR'})
+print_metrics(test_prediction)
 ```
-
+The best results obtained on the test set from the three models are summarized in the table below:
 
 <div style='width:100%;'>
 |Classifier                      | Parameters |Precision|          |Recall    |        |F1 score  |        |AUC-PR   | 
@@ -338,7 +392,7 @@ auc_pr = auc_evaluator.evaluate(test_prediction, {auc_evaluator.metricName:'area
 |Gradient-boosted tree classifier|maxDepth=5, maxIter=100                      |0.77|0.43|0.73|0.60|0.74|0.50|0.65|    
 </div>
 
-The best model is achieved at maxDepth=5 and numTrees=40. We apply this model to the test set, and we obtain a improved **f1 score** of **0.830** and **AUC-PR** of **0.731**. 
+It shows that the random forest classifier outperforms both the logistic regression model and the gradient-boosted tree classifier in almost all categories. As aforementioned, the features and the response variable do not follow a linear relationship, which might suggest that a non-linear model will be more suited to the data. At a default probability threshold of 0.5, the random forest classifier is able to identify 60% of churned users and 25% users identified as churned ones acutally satisfy with the service. If we want to target more users at risk of churning, we can lower the probability threshold, and a relatively high AUC-PR score of 0.77 will allow us to maintain a high precision that there won't be many more users with no intent of churning are mistakenly targeted. 
 
 ### Feature importance
 To gain a better understanding of the feature attributes to the model in predicting user churn, we extract feature importances from the trained model.
@@ -357,9 +411,11 @@ plt.ylabel('');
 
 It can be seen that the most important feature for identifying churned users is the registration duration which makes sense since it directly reflects a user's willness to stay with the service. Another influential feature that plays a major role in churn prediction is avarage daily advertisements. Intuitively, the more advertisements a user has to watch, the more likely he/she is dissatisfied with the service.  Besides, average upgrades and thumbs down given per day that represent a user's strong inclination also help churn detection. 
 
-The result also shows that gender, latest subscription level and each location feature contribute little to predicting churned users. Nevertheless, we notice that top location features, sch as New England and east south central areas  have far different churn rates than the average churn rate.
+The result also shows that gender, latest subscription level and each location feature contribute little to predicting churned users. Nevertheless, we notice that the churn rates of top location features, sch as those of New England and east south central areas are far different from the average churn rate.
 
 ## Conclusion
 
-In this project, we manage to build a random forest classifier that can accurately identify churned users. Since the dataset is relatively clean, the most critical step in the model development process is feature engineering. It has been proved most of the engineered features based on user behaviors play vital roles in churn prediction. For further imporvements, we can test more engineered features that capture the  insights about users' activity patterns and trends. In addtion, a latent issue with our current modeling is that we have 49 features for a dataset with only 225 sample, which may potentially cause the curse of dimensionality. From the analysis of feature importance, we can safely reduce the number of features by discarding most of encoded location featues before feeding them into the model.
+In this project, we manage to build a random forest classifier that can accurately identify churned users. Since the dataset is relatively clean, the most critical step in the model development process is feature engineering. It has been proved most of the engineered features based on user behaviors play vital roles in churn prediction. As for model selection, the tuned random forest model with 100 trees and a max tree depth of 4 achieves the best result with an overall f1 score of 0.86. Currently, we are able to target 60% of churned users and provide them with special offers in the hope of keeping them from deleting their Sparkify accounts. On the other hand, 25% of the customers who will receive special offers did not plan to discontinue the service and thus, would not need any special treatment. We need to emphasize that these results correspond to models that were only trained on 181 users and tested on 44 users with 10 positive cases. We expect the machine learning pipeline we develop here will generate better results with more training data in a full Sparkify dataset.
+
+For further imporvements, we can test more engineered features that capture the  insights about users' activity patterns and trends. In addtion, we can apply PCA to input features before feeding them to training. PCA allows us to reduce the number of features and decorrelate them, which often helps to improve the performance of the model downstream.
 
