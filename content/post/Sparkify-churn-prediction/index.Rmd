@@ -210,8 +210,8 @@ user_df = user_df \
         .drop('userId', 'obsDays', 'nSongs', 'nThumbsUp', 'nThumbsDown', 'nUpgrade', 'nDowngrade', \
               'nAddFriend', 'nAddPlaylist', 'nAdvert', 'nHelp', 'nError')
 ```
-![](gender_latest_level_count.png){width=80%}
-![](location_count.png){width=80%}
+![](gender_latest_level_counts.png){width=80%}
+![](location_counts.png){width=80%}
 
 An overall look at the first three categorical feaures indicates:
 
