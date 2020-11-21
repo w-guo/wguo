@@ -9,8 +9,7 @@ tags:
 - Feature engineering
 - Spark
 subtitle: ''
-summary: Explore the capabilities of Apache Spark's analytics engine for large-scale
-  data processing to detect churn customers.
+summary: Use Apache Spark for large-scale data processing to predict customer churn
 authors: [Wei Guo]
 lastmod: []
 featured: no
@@ -211,7 +210,8 @@ projects: []
 <div id="feature-engineering-and-exploratory-data-analysis" class="section level2">
 <h2>Feature engineering and exploratory data analysis</h2>
 <p>We use the <em>Cancellation Confirmation</em> events of the <strong>page</strong> column to define the customer churn.</p>
-<pre class="python"><code>userWindow = Window.partitionBy(&#39;userId&#39;).orderBy(&#39;ts&#39;).rangeBetween(Window.unboundedPreceding,Window.unboundedFollowing)
+<pre class="python"><code># create a window partitioned by &#39;userId&#39;
+userWindow = Window.partitionBy(&#39;userId&#39;).orderBy(&#39;ts&#39;).rangeBetween(Window.unboundedPreceding,Window.unboundedFollowing)
 
 # label churned users to be 1 and unchurned users to be 0 
 df = df \
@@ -241,6 +241,7 @@ avg_session_duration_df = df \
 # define the default start and end of the observation period
 obs_start_default = df.select(min(col(&#39;ts&#39;))).collect()[0][0]
 obs_end_default = df.select(max(col(&#39;ts&#39;))).collect()[0][0]  
+
 # compute the observation period
 df = df \
     .withColumn(&#39;obs_start&#39;, when(col(&#39;registration&#39;) &gt; obs_start_default, first(col(&#39;ts&#39;)).over(userWindow)) \
@@ -281,9 +282,9 @@ user_df = user_df \
         .withColumn(&#39;avgDailyAdvert&#39;, col(&#39;nAdvert&#39;) / col(&#39;obsDays&#39;)) \
         .withColumn(&#39;avgDailyHelp&#39;, col(&#39;nHelp&#39;) / col(&#39;obsDays&#39;)) \
         .withColumn(&#39;avgDailyError&#39;, col(&#39;nError&#39;) / col(&#39;obsDays&#39;)) \
-        .drop(&#39;obsDays&#39;, &#39;nSongs&#39;, &#39;nThumbsUp&#39;, &#39;nThumbsDown&#39;, &#39;nUpgrade&#39;, &#39;nDowngrade&#39;, \
+        .drop(&#39;userId&#39;, &#39;obsDays&#39;, &#39;nSongs&#39;, &#39;nThumbsUp&#39;, &#39;nThumbsDown&#39;, &#39;nUpgrade&#39;, &#39;nDowngrade&#39;, \
               &#39;nAddFriend&#39;, &#39;nAddPlaylist&#39;, &#39;nAdvert&#39;, &#39;nHelp&#39;, &#39;nError&#39;)</code></pre>
-<p><img src="gender_latest_level_count.png" style="width:90.0%" /> <img src="location_count.png" style="width:100.0%" /></p>
+<p><img src="gender_latest_level_count.png" style="width:80.0%" /> <img src="location_count.png" style="width:80.0%" /></p>
 <p>An overall look at the first three categorical feaures indicates:</p>
 <ul>
 <li>The churn rates are only slightly higher for male users and free users</li>
@@ -312,7 +313,7 @@ cor_mat = user_df_pd[[&#39;gender&#39;, &#39;latestLevel&#39;,&#39;registDuratio
 # plot feature correlations
 sns.heatmap(cor_mat, cmap=sns.diverging_palette(240, 20, as_cmap=True), annot=True, square=True, vmin=-1, vmax=1)</code></pre>
 <div class="figure">
-<img src="feature_correlations.png" style="width:90.0%" />
+<img src="feature_correlations.png" style="width:80.0%" />
 
 </div>
 <p>From the heatmap above, we find</p>
@@ -320,8 +321,8 @@ sns.heatmap(cor_mat, cmap=sns.diverging_palette(240, 20, as_cmap=True), annot=Tr
 <li><p>There is a high correlation between most of the page event activities. For example, variables <strong>avgDailySongs</strong>, <strong>avgDailyThumbsUp</strong>, <strong>avgDailyDowngrade</strong>, <strong>avgDailyAddFriend</strong>, <strong>avgDailyAddPlaylist</strong> and <strong>avgDailyHelp</strong> are almost perfectly coupled. To avoid multicolinearity in the data, we only retain <strong>avgDailyAddPlaylist</strong> here (as it has the highest correlation with <strong>Churn</strong>).</p></li>
 <li><p><strong>Churn</strong> doesn not appear to have strong correlations with any features. <strong>registDuration</strong> is negatively correlated with <strong>Churn</strong> while <strong>avgDaily</strong> has the highest positive correlation with <strong>Churn</strong>. It also shows that <strong>gender</strong>, <strong>latestLevel</strong>, <strong>avgSessionDuration</strong> and <strong>avgDailyError</strong> all have very low correlation with <strong>Churn</strong>. This is consistent with our previous findings through direct visualization. However, the Pearson correlation assumes a linear relationship, and a low correlation simply means that there is no linear relationship between these features and the response variable. The data might still have a nonlinear relationship and should be included in the modeling for now.</p></li>
 </ul>
-<pre class="python"><code>feat_df = user_df.drop(&#39;userId&#39;, &#39;avgDailySongs&#39;, &#39;avgDailyThumbsUp&#39;, 
-                      &#39;avgDailyDowngrade&#39;, &#39;avgDailyAddFriend&#39;, &#39;avgDailyHelp&#39;)</code></pre>
+<pre class="python"><code># drop highly correlated features
+feat_df = user_df.drop(&#39;avgDailySongs&#39;, &#39;avgDailyThumbsUp&#39;, &#39;avgDailyDowngrade&#39;, &#39;avgDailyAddFriend&#39;, &#39;avgDailyHelp&#39;)</code></pre>
 </div>
 <div id="feature-transformation" class="section level3">
 <h3>Feature transformation</h3>
@@ -366,12 +367,10 @@ model_df = data_pipeline.fit(feat_df).transform(feat_df)</code></pre>
 </div>
 <div id="modeling-and-evaluation" class="section level2">
 <h2>Modeling and evaluation</h2>
-<p>We randomly split the entire dataset into a training set, a validation set and a test set in 6:2:2 ratio using stratified sampling based on <strong>Churn</strong>.</p>
+<p>We randomly split the entire dataset into a training and a test set in 8:2 ratio using stratified sampling based on <strong>Churn</strong>.</p>
 <pre class="python"><code># split the data into train, validation and test sets using stratified sampling based on &#39;Churn&#39;
-train_val = model_df.sampleBy(&#39;Churn&#39;, fractions={0: 0.8, 1: 0.8}, seed=2020)
-test = model_df.subtract(train_val)
-train = train_val.sampleBy(&#39;Churn&#39;, fractions={0: 0.75, 1: 0.75}, seed=2020)
-val = train_val.subtract(train)</code></pre>
+train = model_df.sampleBy(&#39;Churn&#39;, fractions={0: 0.8, 1: 0.8}, seed=2020)
+test = model_df.subtract(train_val)</code></pre>
 <p>Using Spark’s <strong>sampleBy</strong> function, the training, validation and test set now consists of 161, 20 and 44 users, respectively. Notice the training and validation set do not follow a 75/25 split since Spark’s sampleBy function does not guarantee an exact split to the weights (fluctuations often happen if number of records is low). It only guarantees that each object has equal probability to be assigned to a specific subset.</p>
 <div id="performance-metrics" class="section level3">
 <h3>Performance metrics</h3>
@@ -380,69 +379,8 @@ val = train_val.subtract(train)</code></pre>
 <div id="model-selection" class="section level3">
 <h3>Model selection</h3>
 <p>We select three binary classifiers supported in Spark as candidate models: logistic regression, random forest classifier and gradient-boosted tree classifier. Both random forest and gradient-boosted techniques employ an ensemble of decision trees (base estimators) to improve the predictive capability over a single estimator. The difference is random forest builds several estimators independently and then average their predictions, while gradient-boosted tree buils base estimators sequentially to generate a powerful ensemble. The predictions from the three models on the validation set without tuning are demonstrated below:</p>
-<pre class="python"><code># logistic regression
-lr = LogisticRegression(featuresCol=&#39;features&#39;, labelCol=&#39;Churn&#39;, seed=2020)
-lr_model = lr.fit(train)
-
-# random forest classifier
-rf = RandomForestClassifier(featuresCol=&#39;features&#39;, labelCol=&#39;Churn&#39;, seed=2020)
-rf_model = rf.fit(train)
-
-# gradient-boosted tree classifier
-gb = GBTClassifier(featuresCol=&#39;features&#39;, labelCol=&#39;Churn&#39;, seed=2020)
-gb_model = gb.fit(train)
-
-model_dict = {&#39;logistic regression&#39;: lr_model,
-              &#39;random forest classifier&#39;: rf_model,
-              &#39;gradient-boosted tree classifier&#39;: gb_model}
-
-for model_name, model in model_dict.items():    
-    # predict on validation set
-    val_prediction = model.transform(val)
-    
-    # compute f1 score
-    f1_score_evaluator = MulticlassClassificationEvaluator(labelCol=&#39;Churn&#39;, metricName=&#39;f1&#39;)
-    f1_score = f1_score_evaluator.evaluate(val_prediction.select(&#39;Churn&#39;, &#39;prediction&#39;))
-    print(&#39;F1 score for {} on validation set: {:.3f}&#39;.format(model_name, f1_score))
-    
-    # compute area under PR curve
-    auc_evaluator = BinaryClassificationEvaluator(labelCol=&#39;Churn&#39;)
-    auc_pr = auc_evaluator.evaluate(val_prediction, {auc_evaluator.metricName:&#39;areaUnderPR&#39;})
-    print(&#39;Area under PR curve for {} on validation set: {:.3f}\n&#39;.format(model_name, auc_pr))</code></pre>
-<center>
-<div style="width:60%;">
-<table>
-<thead>
-<tr class="header">
-<th>Classifier</th>
-<th>F1 score</th>
-<th>AUC-PR</th>
-<th>Training time (s)</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Logistic regression</td>
-<td>0.659</td>
-<td>0.128</td>
-<td>130.8</td>
-</tr>
-<tr class="even">
-<td>Random forest classifier</td>
-<td>0.811</td>
-<td>0.460</td>
-<td>67.0</td>
-</tr>
-<tr class="odd">
-<td>Gradient-boosted tree classifier</td>
-<td>0.760</td>
-<td>0.502</td>
-<td>267.9</td>
-</tr>
-</tbody>
-</table>
-</div>
-</center>
+<pre class="python"><code>
+</code></pre>
 <p>The results show that the random forest classifier outperforms both the logistic regression model and the gradient-boosted tree classifier in terms of f1 score and training time. The gradient-boosted tree classifier only performs marginally better than the random forest classifer in AUC-PR. As aforementioned, the features and the response variable do not follow a linear relationship, which suggest that a non-linear model might be more suited to the data.</p>
 </div>
 <div id="hyperparameter-tuning" class="section level3">
@@ -468,80 +406,99 @@ f1_score = f1_score_evaluator.evaluate(test_prediction.select(&#39;Churn&#39;, &
 
 auc_evaluator = BinaryClassificationEvaluator(labelCol=&#39;Churn&#39;)
 auc_pr = auc_evaluator.evaluate(test_prediction, {auc_evaluator.metricName:&#39;areaUnderPR&#39;})</code></pre>
-<center>
-<div style="width:30%;">
+<div style="width:100%;">
 <table>
+<colgroup>
+<col width="22%" />
+<col width="11%" />
+<col width="9%" />
+<col width="10%" />
+<col width="10%" />
+<col width="8%" />
+<col width="10%" />
+<col width="8%" />
+<col width="9%" />
+</colgroup>
 <thead>
 <tr class="header">
-<th>maxDepth</th>
-<th>numTrees</th>
-<th>F1 score</th>
+<th align="left">Classifier</th>
+<th align="left">Parameters</th>
+<th align="center">Precision</th>
+<th></th>
+<th align="center">Recall</th>
+<th></th>
+<th align="center">F1 score</th>
+<th></th>
+<th align="center">AUC-PR</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>4</td>
-<td>20</td>
-<td>0.812</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="center">Overall</td>
+<td>Churned</td>
+<td align="center">Overall</td>
+<td>Churned</td>
+<td align="center">Overall</td>
+<td>Churned</td>
+<td align="center"></td>
 </tr>
 <tr class="even">
-<td>5</td>
-<td>20</td>
-<td>0.808</td>
+<td align="left">Logistic regression</td>
+<td align="left">maxIter=10, regParam=0.1, elasticNetParam=0.5</td>
+<td align="center">0.85</td>
+<td>1.00</td>
+<td align="center">0.82</td>
+<td>0.20</td>
+<td align="center">0.77</td>
+<td>0.33</td>
+<td align="center">0.72</td>
 </tr>
 <tr class="odd">
-<td>6</td>
-<td>20</td>
-<td>0.814</td>
+<td align="left">Random forest classifier</td>
+<td align="left">maxDepth=4, numTrees=100</td>
+<td align="center">0.86</td>
+<td><strong>0.75</strong></td>
+<td align="center">0.86</td>
+<td><strong>0.60</strong></td>
+<td align="center"><strong>0.86</strong></td>
+<td>0.67</td>
+<td align="center"><strong>0.77</strong></td>
 </tr>
 <tr class="even">
-<td>4</td>
-<td>40</td>
-<td>0.802</td>
-</tr>
-<tr class="odd">
-<td>5</td>
-<td>40</td>
-<td>0.826</td>
-</tr>
-<tr class="even">
-<td>6</td>
-<td>40</td>
-<td>0.806</td>
+<td align="left">Gradient-boosted tree classifier</td>
+<td align="left">maxDepth=5, maxIter=100</td>
+<td align="center">0.77</td>
+<td>0.43</td>
+<td align="center">0.73</td>
+<td>0.60</td>
+<td align="center">0.74</td>
+<td>0.50</td>
+<td align="center">0.65</td>
 </tr>
 </tbody>
 </table>
 </div>
-</center>
 <p>The best model is achieved at maxDepth=5 and numTrees=40. We apply this model to the test set, and we obtain a improved <strong>f1 score</strong> of <strong>0.830</strong> and <strong>AUC-PR</strong> of <strong>0.731</strong>.</p>
 </div>
 <div id="feature-importance" class="section level3">
 <h3>Feature importance</h3>
 <p>To gain a better understanding of the feature attributes to the model in predicting user churn, we extract feature importances from the trained model.</p>
-<pre class="python"><code># map features from the output of VectorAssembler back to the column names
-attr_dict = test_prediction.schema[&#39;features&#39;].metadata[&#39;ml_attr&#39;][&#39;attrs&#39;]
+<pre class="python"><code>features = bin_cols + num_cols
+importances = list(cv_rf.bestModel.stages[-1].featureImportances)
+feat_imp_pd = pd.DataFrame({&#39;feature&#39;: features, &#39;importance&#39;: importances}).sort_values(&#39;importance&#39;, ascending = False)
 
-# rename categorical columns
-bin_attrs = [[attr[&quot;idx&quot;], attr[&quot;name&quot;]] for attr in attr_dict[&#39;binary&#39;]]
-for bin_attr in bin_attrs:
-    name_split = bin_attr[1].split(&#39;_&#39;)
-    if name_split[0] == &#39;location&#39;:
-        bin_attr[1] = name_split[0] + name_split[-1]
-    else:
-        bin_attr[1] = name_split[0]
-        
-# rename numerical columns
-num_attrs = [[attr[&quot;idx&quot;], attr[&quot;name&quot;]] for attr in attr_dict[&#39;numeric&#39;]] 
-num_attrs = [[num_attr[0], num_cols[i]] for i, num_attr in enumerate(num_attrs)]
-
-features = [attr[1] for attr in bin_attrs + num_attrs]
-importances = list(cv_rf.bestModel.featureImportances)</code></pre>
+# plot feature importance
+sns.barplot(data=feat_imp_pd.head(15), y=&quot;feature&quot;, x=&quot;importance&quot;, palette=&#39;Blues_r&#39;, zorder=2)
+plt.grid(axis=&#39;x&#39;, linestyle=&#39;--&#39;, zorder=0)
+plt.ylabel(&#39;&#39;);</code></pre>
 <div class="figure">
 <img src="feature_importance.png" style="width:80.0%" />
 
 </div>
-<p>It can be seen that the most important feature for identifying churned users is the registration duration which makes sense since it directly reflects a user’s willness to stay with the service. Besides, average upgrades and thumbs down given per day that represent a user’s strong inclination also play major roles in churn prediction. Another influential feature that helps churn detection is avarage daily advertisements. Intuitively, the more advertisements a user has to watch, the more likely he/she is dissatisfied with the service.</p>
-<p>The result also shows that gender, latest subscription level and each one-hot encoded location feature contribute little to predicting churned users. Nevertheless, we notice that all the top location features have much higher churn rates than the average churn rate.</p>
+<p>It can be seen that the most important feature for identifying churned users is the registration duration which makes sense since it directly reflects a user’s willness to stay with the service. Another influential feature that plays a major role in churn prediction is avarage daily advertisements. Intuitively, the more advertisements a user has to watch, the more likely he/she is dissatisfied with the service. Besides, average upgrades and thumbs down given per day that represent a user’s strong inclination also help churn detection.</p>
+<p>The result also shows that gender, latest subscription level and each location feature contribute little to predicting churned users. Nevertheless, we notice that top location features, sch as New England and east south central areas have far different churn rates than the average churn rate.</p>
 </div>
 </div>
 <div id="conclusion" class="section level2">
