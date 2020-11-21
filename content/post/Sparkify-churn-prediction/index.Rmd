@@ -211,7 +211,7 @@ user_df = user_df \
               'nAddFriend', 'nAddPlaylist', 'nAdvert', 'nHelp', 'nError')
 ```
 ![](gender_latest_level_count.png){width=80%}
-#![](location_count.png){width=80%}
+![](location_count.png){width=80%}
 
 An overall look at the first three categorical feaures indicates:
 
@@ -407,7 +407,7 @@ plt.grid(axis='x', linestyle='--', zorder=0)
 plt.ylabel('');
 ```
 
-#![](feature_importance.png){width=80%}
+![](feature_importances.png){width=80%}
 
 It can be seen that the most important feature for identifying churned users is the registration duration which makes sense since it directly reflects a user's willness to stay with the service. Another influential feature that plays a major role in churn prediction is avarage daily advertisements. Intuitively, the more advertisements a user has to watch, the more likely he/she is dissatisfied with the service.  Besides, average upgrades and thumbs down given per day that represent a user's strong inclination also help churn detection. 
 
