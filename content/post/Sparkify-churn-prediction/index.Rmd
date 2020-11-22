@@ -30,6 +30,7 @@ Predicting customer churn is a challenging and common problem for any e-commerce
 * **[Feature engineering and exploratory data analysis ](#feature-engineering-and-exploratory-data-analysis)**
     + [Feature correlation](#feature-correlation)
 * **[Modeling and evaluation](#modeling-and-evaluation)**
+    + [Build training pipelines](#build-training-pipelines)
     + [Performance metrics](#performance-metrics)
     + [Hyperparameter tuning](#hyperparameter-tuning)
     + [Feature importance](#feature-importance)
@@ -302,8 +303,36 @@ We first randomly split the entire dataset into a training and a test set in 8:2
 train = model_df.sampleBy('Churn', fractions={0: 0.8, 1: 0.8}, seed=2020)
 test = model_df.subtract(train_val)
 ```
-We select three binary classifiers supported in Spark as candidate models: logistic regression, random forest classifier and gradient-boosted tree classifier. Both random forest and gradient-boosted techniques employ an ensemble of decision trees (base estimators) to improve the predictive capability over a single estimator. The difference is random forest builds several estimators independently and then average their predictions, while gradient-boosted tree buils base estimators sequentially to generate a powerful ensemble.
+Three binary classifiers supported in Spark are selected as candidate models: logistic regression, random forest classifier and gradient-boosted tree classifier. Both random forest and gradient-boosted techniques employ an ensemble of decision trees (base estimators) to improve the predictive capability over a single estimator. The difference is random forest builds several estimators independently and then average their predictions, while gradient-boosted tree buils base estimators sequentially to generate a powerful ensemble.
 
+### Build training pipelines
+
+For each binary classifier, we build a pipeline to facilitate the machine learning workflow and prevent data leakage.
+```python
+num_cols = [field.name for field in model_df.schema.fields if field.dataType != IntegerType()]
+bin_cols = [col for col in model_df.columns if col not in num_cols + ['Churn']]
+
+# assemble numerical columns to a single vector column 
+num_assembler = VectorAssembler(inputCols=num_cols, outputCol='num_features')
+    
+# scale each numberical feature within the range [0,1] 
+scaler = MinMaxScaler(inputCol='num_features', outputCol='scaled_features')
+    
+# assemble all vector columns into one vector column
+assembler = VectorAssembler(inputCols= bin_cols + ['scaled_features'], outputCol='features')
+
+# logistic regression
+lr = LogisticRegression(featuresCol='features', labelCol='Churn')
+pipeline_lr = Pipeline(stages=[num_assembler, scaler, assembler, lr])
+
+# random forest classifier
+rf = RandomForestClassifier(featuresCol='features', labelCol='Churn', seed=2020)
+pipeline_rf = Pipeline(stages=[num_assembler, scaler, assembler, rf])
+
+# gradient-boosted tree classifier
+gb = GBTClassifier(featuresCol='features', labelCol='Churn', seed=2020)
+pipeline_gb = Pipeline(stages=[num_assembler, scaler, assembler, gb])
+```
 ### Performance metrics
 
 We choose to use the **f1 score** as a performance metric since our dataset is imbalanced. The f1 score is the harmonic mean of the precision and recall. Spark's **MulticlassClassificationEvaluator** module in the **ml.evaluation** subpackage only provides weighted f1 score, precision and recall metrics. For an imbalanced dataset dominated by the negative class, the weighted metrics will inflate the corresponding metrics from the positive class which we are more interested in. For this reason, we employ the **MulticlassMetrics** module from Spark's **mllib.evaluation** subpackage to calculate these metrics for each class. Another metric we look at is the **area under the precision-recall curve (AUC-PR)**. For binary classifier evaluation, precision-recall curves are more useful in practice than the receiver operating characteristic (ROC) curves for problems where the "positive" class is more of interest than the negative class. See: http://pages.cs.wisc.edu/~jdavis/davisgoadrichcamera2.pdf 

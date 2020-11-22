@@ -41,6 +41,7 @@ projects: []
 </ul></li>
 <li><strong><a href="#modeling-and-evaluation">Modeling and evaluation</a></strong>
 <ul>
+<li><a href="#build-training-pipelines">Build training pipelines</a></li>
 <li><a href="#performance-metrics">Performance metrics</a></li>
 <li><a href="#hyperparameter-tuning">Hyperparameter tuning</a></li>
 <li><a href="#feature-importance">Feature importance</a></li>
@@ -385,7 +386,34 @@ model_df = user_df.drop(*cols_to_drop)</code></pre>
 <pre class="python"><code># split the data into train, validation and test sets using stratified sampling based on &#39;Churn&#39;
 train = model_df.sampleBy(&#39;Churn&#39;, fractions={0: 0.8, 1: 0.8}, seed=2020)
 test = model_df.subtract(train_val)</code></pre>
-<p>We select three binary classifiers supported in Spark as candidate models: logistic regression, random forest classifier and gradient-boosted tree classifier. Both random forest and gradient-boosted techniques employ an ensemble of decision trees (base estimators) to improve the predictive capability over a single estimator. The difference is random forest builds several estimators independently and then average their predictions, while gradient-boosted tree buils base estimators sequentially to generate a powerful ensemble.</p>
+<p>Three binary classifiers supported in Spark are selected as candidate models: logistic regression, random forest classifier and gradient-boosted tree classifier. Both random forest and gradient-boosted techniques employ an ensemble of decision trees (base estimators) to improve the predictive capability over a single estimator. The difference is random forest builds several estimators independently and then average their predictions, while gradient-boosted tree buils base estimators sequentially to generate a powerful ensemble.</p>
+<div id="build-training-pipelines" class="section level3">
+<h3>Build training pipelines</h3>
+<p>For each binary classifier, we build a pipeline to facilitate the machine learning workflow and prevent data leakage.</p>
+<pre class="python"><code>num_cols = [field.name for field in model_df.schema.fields if field.dataType != IntegerType()]
+bin_cols = [col for col in model_df.columns if col not in num_cols + [&#39;Churn&#39;]]
+
+# assemble numerical columns to a single vector column 
+num_assembler = VectorAssembler(inputCols=num_cols, outputCol=&#39;num_features&#39;)
+    
+# scale each numberical feature within the range [0,1] 
+scaler = MinMaxScaler(inputCol=&#39;num_features&#39;, outputCol=&#39;scaled_features&#39;)
+    
+# assemble all vector columns into one vector column
+assembler = VectorAssembler(inputCols= bin_cols + [&#39;scaled_features&#39;], outputCol=&#39;features&#39;)
+
+# logistic regression
+lr = LogisticRegression(featuresCol=&#39;features&#39;, labelCol=&#39;Churn&#39;)
+pipeline_lr = Pipeline(stages=[num_assembler, scaler, assembler, lr])
+
+# random forest classifier
+rf = RandomForestClassifier(featuresCol=&#39;features&#39;, labelCol=&#39;Churn&#39;, seed=2020)
+pipeline_rf = Pipeline(stages=[num_assembler, scaler, assembler, rf])
+
+# gradient-boosted tree classifier
+gb = GBTClassifier(featuresCol=&#39;features&#39;, labelCol=&#39;Churn&#39;, seed=2020)
+pipeline_gb = Pipeline(stages=[num_assembler, scaler, assembler, gb])</code></pre>
+</div>
 <div id="performance-metrics" class="section level3">
 <h3>Performance metrics</h3>
 <p>We choose to use the <strong>f1 score</strong> as a performance metric since our dataset is imbalanced. The f1 score is the harmonic mean of the precision and recall. Spark’s <strong>MulticlassClassificationEvaluator</strong> module in the <strong>ml.evaluation</strong> subpackage only provides weighted f1 score, precision and recall metrics. For an imbalanced dataset dominated by the negative class, the weighted metrics will inflate the corresponding metrics from the positive class which we are more interested in. For this reason, we employ the <strong>MulticlassMetrics</strong> module from Spark’s <strong>mllib.evaluation</strong> subpackage to calculate these metrics for each class. Another metric we look at is the <strong>area under the precision-recall curve (AUC-PR)</strong>. For binary classifier evaluation, precision-recall curves are more useful in practice than the receiver operating characteristic (ROC) curves for problems where the “positive” class is more of interest than the negative class. See: <a href="http://pages.cs.wisc.edu/~jdavis/davisgoadrichcamera2.pdf" class="uri">http://pages.cs.wisc.edu/~jdavis/davisgoadrichcamera2.pdf</a></p>
