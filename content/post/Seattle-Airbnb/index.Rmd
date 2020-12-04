@@ -1,0 +1,24 @@
+---
+title: Data-Driven Insights of Airbnb Market in Seattle
+author: ~
+date: '2020-12-04'
+slug: Seattle-airbnb-analysis
+categories: []
+tags:
+- Data visualization
+- Geospatial analysis
+- Sentiment analysis
+- Text mining
+subtitle: ''
+summary: Explore key insights of Seattle Airbnb market from the perspective of data visualization and text mining
+authors: [Wei Guo]
+lastmod: []
+featured: no
+image:
+  caption: '[Photo by Thom Milkovic on Unsplash](https://unsplash.com/photos/skUTVJi8-jc)'
+  focal_point: 'center'
+  preview_only: no
+projects: []
+---
+
+## Overview
