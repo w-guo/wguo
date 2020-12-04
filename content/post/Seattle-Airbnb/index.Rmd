@@ -10,15 +10,65 @@ tags:
 - Sentiment analysis
 - Text mining
 subtitle: ''
-summary: Explore key insights of Seattle Airbnb market from the perspective of data visualization and text mining
+summary: Explore key insights of Seattle Airbnb market from the perspectives of interactive data visualization and text mining
 authors: [Wei Guo]
 lastmod: []
 featured: no
 image:
   caption: '[Photo by Thom Milkovic on Unsplash](https://unsplash.com/photos/skUTVJi8-jc)'
   focal_point: 'center'
-  preview_only: no
 projects: []
 ---
 
 ## Overview
+
+```python
+# load the neighbourhood information
+nbh_geo = gpd.read_file('neighbourhoods.geojson', driver='GeoJSON')
+
+# calculate the number of listings by neighbourhood
+nbh_count = listings_df.groupby('neighbourhood_cleansed')['id'].nunique().reset_index()
+nbh_count.rename(columns={'neighbourhood_cleansed':'neighbourhood'}, inplace=True)
+nbh_geo_count = pd.merge(nbh_geo, nbh_count, on='neighbourhood', how='left')
+nbh_geo_count['id'] = nbh_geo_count['id'].fillna(0).astype(int)
+
+# calculate the percentage of listings by neighbourhood
+nbh_geo_count['pct'] = nbh_geo_count['id'] / nbh_geo_count['id'].sum()
+nbh_geo_count['pct_str'] = nbh_geo_count['pct'].apply(lambda x : str(round(x*100, 1)) + '%')
+
+# create a colorbar
+nbh_count_colormap = branca.colormap.linear.YlGnBu_09.scale(min(nbh_geo_count['id']), max(nbh_geo_count['id']))
+
+nbh_locs_map = folium.Map(location=seattle_coordinates, zoom_start=11, tiles='cartodbpositron')
+
+style_function = lambda x: {
+    'fillColor': nbh_count_colormap(x['properties']['id']),
+    'color': 'white',
+    'weight': 1,
+    'fillOpacity': 0.7
+}
+
+nbh_locsNb = folium.GeoJson(
+    nbh_geo_count,
+    style_function=style_function,
+    tooltip=folium.GeoJsonTooltip(
+        fields=['neighbourhood', 'id', 'pct_str'],
+        aliases=['Neighbourhood', 'Listings', 'Percentage'],
+        localize=True
+    )
+).add_to(nbh_locs_map)
+
+# add the colorbar to the map
+nbh_count_colormap.add_to(nbh_locs_map)
+nbh_count_colormap.caption = 'Number of listings by neighbourhood'
+```
+
+<iframe src="neighbourhood_listings.html" style="display: block; width:100%; height: 400px">
+</iframe>
+
+### Average daily price by neighbourhood
+
+To compare average daily price by neighbourhood, we only select the neighbourhoods including at least 5 listings with the most common type of accommodation, which is accommodation for 2 people
+
+<iframe src="neighbourhood_prices.html" style="display: block; width:100%; height: 400px">
+</iframe>

@@ -1,0 +1,73 @@
+---
+title: Data-Driven Insights of Airbnb Market in Seattle
+author: ~
+date: '2020-12-04'
+slug: Seattle-airbnb-analysis
+categories: []
+tags:
+- Data visualization
+- Geospatial analysis
+- Sentiment analysis
+- Text mining
+subtitle: ''
+summary: Explore key insights of Seattle Airbnb market from the perspectives of interactive data visualization and text mining
+authors: [Wei Guo]
+lastmod: []
+featured: no
+image:
+  caption: '[Photo by Thom Milkovic on Unsplash](https://unsplash.com/photos/skUTVJi8-jc)'
+  focal_point: 'center'
+projects: []
+---
+
+
+
+<div id="overview" class="section level2">
+<h2>Overview</h2>
+<pre class="python"><code># load the neighbourhood information
+nbh_geo = gpd.read_file(&#39;neighbourhoods.geojson&#39;, driver=&#39;GeoJSON&#39;)
+
+# calculate the number of listings by neighbourhood
+nbh_count = listings_df.groupby(&#39;neighbourhood_cleansed&#39;)[&#39;id&#39;].nunique().reset_index()
+nbh_count.rename(columns={&#39;neighbourhood_cleansed&#39;:&#39;neighbourhood&#39;}, inplace=True)
+nbh_geo_count = pd.merge(nbh_geo, nbh_count, on=&#39;neighbourhood&#39;, how=&#39;left&#39;)
+nbh_geo_count[&#39;id&#39;] = nbh_geo_count[&#39;id&#39;].fillna(0).astype(int)
+
+# calculate the percentage of listings by neighbourhood
+nbh_geo_count[&#39;pct&#39;] = nbh_geo_count[&#39;id&#39;] / nbh_geo_count[&#39;id&#39;].sum()
+nbh_geo_count[&#39;pct_str&#39;] = nbh_geo_count[&#39;pct&#39;].apply(lambda x : str(round(x*100, 1)) + &#39;%&#39;)
+
+# create a colorbar
+nbh_count_colormap = branca.colormap.linear.YlGnBu_09.scale(min(nbh_geo_count[&#39;id&#39;]), max(nbh_geo_count[&#39;id&#39;]))
+
+nbh_locs_map = folium.Map(location=seattle_coordinates, zoom_start=11, tiles=&#39;cartodbpositron&#39;)
+
+style_function = lambda x: {
+    &#39;fillColor&#39;: nbh_count_colormap(x[&#39;properties&#39;][&#39;id&#39;]),
+    &#39;color&#39;: &#39;white&#39;,
+    &#39;weight&#39;: 1,
+    &#39;fillOpacity&#39;: 0.7
+}
+
+nbh_locsNb = folium.GeoJson(
+    nbh_geo_count,
+    style_function=style_function,
+    tooltip=folium.GeoJsonTooltip(
+        fields=[&#39;neighbourhood&#39;, &#39;id&#39;, &#39;pct_str&#39;],
+        aliases=[&#39;Neighbourhood&#39;, &#39;Listings&#39;, &#39;Percentage&#39;],
+        localize=True
+    )
+).add_to(nbh_locs_map)
+
+# add the colorbar to the map
+nbh_count_colormap.add_to(nbh_locs_map)
+nbh_count_colormap.caption = &#39;Number of listings by neighbourhood&#39;</code></pre>
+<iframe src="neighbourhood_listings.html" style="display: block; width:100%; height: 400px">
+</iframe>
+<div id="average-daily-price-by-neighbourhood" class="section level3">
+<h3>Average daily price by neighbourhood</h3>
+<p>To compare average daily price by neighbourhood, we only select the neighbourhoods including at least 5 listings with the most common type of accommodation, which is accommodation for 2 people</p>
+<iframe src="neighbourhood_prices.html" style="display: block; width:100%; height: 400px">
+</iframe>
+</div>
+</div>
