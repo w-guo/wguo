@@ -22,8 +22,71 @@ projects: []
 
 
 
+<p>Known as the “Emerald City”, Seattle attracts thousands of tourists every year to visit. With more than 4000 listings in the city, Airbnb has interwoven with the rental landscape since its inception in 2008. In this post, I’ll be focusing on using interactive data visualization and text mining tools to explore a few key insights of the lastest Seattle Airbnb market. Given the open source Seattle Airbnb data from <a href="http://insideairbnb.com/get-the-data.html">Inside Airbnb</a>, I attempt to answer the following business questions from three aspects:</p>
+<ul>
+<li>Location impact on Seattle Airbnb market
+<ul>
+<li>Where are the listings located and what are the average prices of these listings by neighbourhood?</li>
+</ul></li>
+<li>Advice for tourists
+<ul>
+<li>What is the availability of the accommodations and what is the price trend in the near future?</li>
+</ul></li>
+<li>Insights for hosts
+<ul>
+<li>What do tourists like about their accommodations and what do they usually complain about if they had a bad experience?</li>
+</ul></li>
+</ul>
+<p>The analysis provided here gives a general overview of the Airbnb market in Seattle, and can also serve as a guide to the future visitors.</p>
 <div id="overview" class="section level2">
 <h2>Overview</h2>
+<ul>
+<li><strong><a href="#data-exploration">Data exploration</a></strong>
+<ul>
+<li><a href="#locations-on-the-map">Locations on the map</a></li>
+<li><a href="#room-types">Room types</a></li>
+<li><a href="#accommodates">Accommodates</a></li>
+</ul></li>
+<li><strong><a href="#location-impact-on-seattle-airbnb-market">Location impact on Seattle Airbnb market</a></strong>
+<ul>
+<li><a href="#number-of-listings-by-neighbourhood">Number of listings by neighbourhood</a></li>
+<li><a href="#average-daily-prices-by-neighbourhood">Average daily prices by neighbourhood</a></li>
+</ul></li>
+<li><strong><a href="#advice-for-tourists">Advice for tourists</a></strong>
+<ul>
+<li><a href="#availability-over-the-time">Availability over the time</a></li>
+<li><a href="#average-daily-prices-by-date">Average daily prices by date</a></li>
+</ul></li>
+<li><strong><a href="#insights-for-hosts">Insights for hosts</a></strong>
+<ul>
+<li><a href="text-mining-of-review-comments">Text mining of review comments</a></li>
+</ul></li>
+</ul>
+</div>
+<div id="data-exploration" class="section level2">
+<h2>Data exploration</h2>
+<p>Before we dig into the answers to the above questions, let’s conduct a brief explorary data analysis to gain a sense of the primary locations, room types and accommodation of the listings in Seattle.</p>
+<div id="locations-on-the-map" class="section level3">
+<h3>Locations on the map</h3>
+<iframe src="listing_locations.html" style="display: block; width:100%; height: 400px">
+</iframe>
+<p>As expected, most listings are located in the center area of the city. This map is interactive, and we can zoom-in on the clusters to eventually find the individual locations of the listings.</p>
+</div>
+<div id="room-types" class="section level3">
+<h3>Room types</h3>
+<div class="figure">
+<img src="room_type_dist.png" style="width:50.0%" />
+
+</div>
+<p>In Seattle, a majority of Airbnb listings is entire home/apartment. The listings for private room and hotel room are very rare.</p>
+</div>
+<div id="accommodates" class="section level3">
+<h3>Accommodates</h3>
+<p><img src="accommodate_dist.png" style="width:55.0%" /> It can be seen that most listings are for 2 people.</p>
+</div>
+</div>
+<div id="location-impact-on-seattle-airbnb-market" class="section level2">
+<h2>Location impact on Seattle Airbnb market</h2>
 <pre class="python"><code># load the neighbourhood information
 nbh_geo = gpd.read_file(&#39;neighbourhoods.geojson&#39;, driver=&#39;GeoJSON&#39;)
 
@@ -64,10 +127,148 @@ nbh_count_colormap.add_to(nbh_locs_map)
 nbh_count_colormap.caption = &#39;Number of listings by neighbourhood&#39;</code></pre>
 <iframe src="neighbourhood_listings.html" style="display: block; width:100%; height: 400px">
 </iframe>
+<p>The spatial distribution of listings shows listings are concentrated in two areas. One is Belltown-Center Business District-Broadway neighbourhoods, which represents the downtown area. The other one is the Wallingford-University District area, which includes the campus of University of Washington (UW). Both downtown area and UW campus are attractive choices for tourists to visit.</p>
 <div id="average-daily-price-by-neighbourhood" class="section level3">
 <h3>Average daily price by neighbourhood</h3>
 <p>To compare average daily price by neighbourhood, we only select the neighbourhoods including at least 5 listings with the most common type of accommodation, which is accommodation for 2 people</p>
 <iframe src="neighbourhood_prices.html" style="display: block; width:100%; height: 400px">
 </iframe>
+<p>It can be seen that the costliest neighbourhoods are also in the downtown area due to high demand, while the average rental prices of UW campus area are far cheaper. Other relatively expensive places, such as West Woodland and North Beach/Blue Ridge are waterfront neighbourhoods.</p>
+</div>
+</div>
+<div id="advice-for-tourists" class="section level2">
+<h2>Advice for tourists</h2>
+<div id="availability-over-time" class="section level3">
+<h3>Availability over time</h3>
+<pre class="python"><code># calculate the sum of available listings by date
+sum_available = calendar_df[calendar_df[&#39;available&#39;] == &#39;t&#39;] \
+                .groupby([&#39;date&#39;]).size().to_frame(name=&#39;available&#39;).reset_index()
+# convert &#39;date&#39; to &#39;weekday&#39;
+sum_available[&#39;date&#39;] = pd.to_datetime(sum_available[&#39;date&#39;])
+sum_available[&#39;weekday&#39;] = sum_available[&#39;date&#39;].dt.day_name()
+
+# plot the sum of available listings by date
+fig = go.Figure(data=go.Scatter(x=sum_available[&#39;date&#39;],
+                                y=sum_available[&#39;available&#39;],
+                                text=sum_available[&#39;weekday&#39;]))
+
+# set the layout
+fig.update_layout(
+    autosize=False,
+    width=480,
+    height=360,
+    margin=dict(l=0, r=0, t=30, b=0),
+    xaxis_title = &#39;Date&#39;,
+    yaxis_title = &#39;Number of listings available&#39;
+)
+
+fig.show()</code></pre>
+<iframe src="availability_over_time.html" style="display: block; width:100%; height: 390px">
+</iframe>
+<p>It shows that there are generally more accomodations available up to three months ahead than further into next year. Part of the reason might be that hosts are more actively updating their calendars in this timeframe. Besides, due to Seattle’s rainy winter, most of people prefer to visit Seattle in summer or autumn instead.</p>
+</div>
+<div id="average-daily-price-by-date" class="section level3">
+<h3>Average daily price by date</h3>
+<p>Again, in order to compare “apples to apples” regarding the prices, we will merge the “accomodates” column from the listings data with the calendar data.</p>
+<pre class="python"><code># calculate the average price of a 2-person accommodation by date
+listings_df.rename(columns={&#39;id&#39;:&#39;listing_id&#39;}, inplace=True)
+calendar_df = pd.merge(calendar_df, listings_df[[&#39;listing_id&#39;,&#39;accommodates&#39;]], on=&#39;listing_id&#39;, how=&#39;left&#39;)
+
+average_price = calendar_df[(calendar_df[&#39;available&#39;] == &#39;t&#39;) &amp; (calendar_df[&#39;accommodates&#39;] == 2)] \
+                .groupby([&#39;date&#39;])[&#39;price_clean&#39;].mean().reset_index()
+# convert &#39;date&#39; to &#39;weekday&#39;
+average_price[&#39;date&#39;] = pd.to_datetime(average_price[&#39;date&#39;])
+average_price[&#39;weekday&#39;] = average_price[&#39;date&#39;].dt.day_name()
+
+# plot the average price of a 2-person accommodation by date
+fig = go.Figure(data=go.Scatter(x=average_price[&#39;date&#39;],
+                                y=average_price[&#39;price_clean&#39;],
+                                text=average_price[&#39;weekday&#39;]))
+
+# set the layout
+fig.update_layout(
+    autosize=False,
+    width=480,
+    height=360,
+    margin=dict(l=0, r=0, t=30, b=0),
+    xaxis_title = &#39;Date&#39;,
+    yaxis_title = &#39;Average price of 2p accommodation&#39;
+)
+
+fig.show()</code></pre>
+<iframe src="average_2p_price_over_time.html" style="display: block; width:100%; height: 390px">
+</iframe>
+<p>We find that the peak of average daily price for a 2-person place occurs on September 4 next year at about $132, and the cyclical pattern is due to higher prices in weekends.</p>
+</div>
+</div>
+<div id="insights-for-hosts" class="section level2">
+<h2>Insights for hosts</h2>
+<p>Last, we want to find out which housing properties (e.g., proximity of restaurants, shops, hygiene, safety, etc.) lead to a good rental experience, and explore some of the worst reviews. Here, we adopt a python package <strong>VADER</strong> which is a lexicon and rule-based sentiment analysis tool, to compute the polarity score of the comments.</p>
+<div id="text-mining-of-review-comments" class="section level3">
+<h3>Text mining of review comments</h3>
+<pre class="python"><code>def get_sentiment(text):
+    &#39;&#39;&#39;Get the compound polarity score of a text 
+    
+    Args:
+    text: (str) the text of a comment
+    
+    Returns:
+    polarity_score: (float) the compound polarity score of the text
+    &#39;&#39;&#39;
+    polarity_score = SentimentIntensityAnalyzer().polarity_scores(str(text))[&#39;compound&#39;]
+    
+    return polarity_score
+
+reviews_df[&#39;polarity_score&#39;] = reviews_df[&#39;comments&#39;].apply(get_sentiment)
+
+# explore the worst reviews
+worst_comments = reviews_df[[&#39;comments&#39;, &#39;polarity_score&#39;]].sort_values(by=&#39;polarity_score&#39;).head(5)
+for index, row in worst_comments.iterrows():
+    print(&quot;Review (score: {}): {} \n&quot;.format(row[&#39;polarity_score&#39;], row[&#39;comments&#39;]))</code></pre>
+<p>From our initial sentiment analysis, we notice that:</p>
+<ul>
+<li>An overwhelming proportion of reviews are positive</li>
+<li>Polarity scores are correlated with the length of reviews. The more efforts one spends in writing a review, the more polarized score the review gets.</li>
+<li>Reviews with words in capital letters and exclamation signs are often rated more polarized.</li>
+<li>Reviews written in non-English seem to be rated badly on the polarity score. It may be a limitation of VADER</li>
+</ul>
+<p>Now let’s build a word cloud for the top 500 positive and negtive reviews, respectively, and see what the most frequently mentioned words are.</p>
+<pre class="python"><code>def plot_wordcloud(comments, output_filename, background_color=&#39;white&#39;, max_words=100):
+    &quot;&quot;&quot;Generate a word cloud image given a corpus of comments
+    
+    Args:
+    comments: (iterable) a corpus of comments
+    output_filename: (str) the output file name
+    background_color: (str) background color for the word cloud image
+    max_words: (int) the maximum number of words.
+    
+    Returns:
+    None
+    &quot;&quot;&quot;
+    features = tfidf.fit_transform(comments).toarray()
+    df = pd.DataFrame(features.tolist(), columns=tfidf.get_feature_names())
+    
+    # generate word cloud
+    wordcloud = WordCloud(background_color=background_color, max_words=max_words, width=1600, height=800) \
+                .generate_from_frequencies(df.T.sum(axis=1))
+    
+    # display the generated image
+    plt.figure(figsize=(12,6))
+    plt.imshow(wordcloud, interpolation=&#39;bilinear&#39;)
+    plt.axis(&#39;off&#39;)
+    plt.savefig(output_filename + &#39;.png&#39;, bbox_inches=&#39;tight&#39;, dpi=150)
+    
+# generate a word cloud for the positive comments
+pos_comments = reviews_df[[&#39;comments&#39;,&#39;polarity_score&#39;]].sort_values(by=&#39;polarity_score&#39;)[&#39;comments&#39;].tail(500)
+plot_wordcloud(pos_comments, &#39;pos_wordcloud&#39;)</code></pre>
+<p><img src="pos_wordcloud.png" style="width:70.0%" /> It’s not surprising the top positive terms include: <strong>walk</strong>, <strong>restaurants</strong>, <strong>food</strong>, <strong>shop</strong>, <strong>bus</strong>, <strong>park</strong>, <strong>view</strong>, <strong>safe</strong> and <strong>quiet</strong>.</p>
+<pre class="python"><code># generate a word cloud for the negative comments
+neg_comments = reviews_df[[&#39;comments&#39;,&#39;polarity_score&#39;]].sort_values(by=&#39;polarity_score&#39;)[&#39;comments&#39;].head(500)
+
+# remove non-English comments
+neg_comments_en = neg_comments[neg_comments.apply(detect) == &#39;en&#39;]
+plot_wordcloud(neg_comments_en, &#39;neg_wordcloud&#39;)</code></pre>
+<p><img src="neg_wordcloud.png" style="width:70.0%" /> In contrast, the top negative terms include: <strong>dirty</strong>, <strong>broken</strong>, <strong>noise</strong>, <strong>smell</strong>, <strong>old</strong> and <strong>small</strong>. Besides, it seems the guests often have issues with amenities, such as <strong>shower</strong>, <strong>door</strong>, <strong>towel</strong>, <strong>window</strong>, <strong>toilet</strong> and <strong>sheet</strong>.</p>
+<p>For more details about this analysis, see the link to my Github available <a href="https://github.com/w-guo/Seattle-Airbnb-analysis">here</a>.</p>
 </div>
 </div>

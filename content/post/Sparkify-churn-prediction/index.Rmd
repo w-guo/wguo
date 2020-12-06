@@ -456,7 +456,7 @@ We test this finding on the full dataset, and the model trained without these fe
 |Random forest classifier        |maxDepth=10, numTrees=100	                   |0.92|**0.93**|0.91|**0.64**|**0.91**|**0.76**|**0.89**|
 </div>
 
-We can be see that there are sizeable performance gains in every metric category due to more training data. At a default probability threshold of 0.5, our model is currently able to identify 64% of user churn and 7% identified as churned users acutally satisfy with the service. If deployed, the trained model could be used to predict users inclined to churn in advance, and we can provide them with special offers in the hope of keeping them from deleting their Sparkify accounts. If we want to target more users prone to churning, we can lower the probability threshold, and a high AUC-PR score of 0.89 will allow us to maintain a high precision that there will not be many more users with no intent of churning mistakenly targeted.
+We can see that there are sizeable performance gains in every metric category due to more training data. At a default probability threshold of 0.5, our model is currently able to identify 64% of user churn and 7% identified as churned users acutally satisfy with the service. If deployed, the trained model could be used to predict users inclined to churn in advance, and we can provide them with special offers in the hope of keeping them from deleting their Sparkify accounts. If we want to target more users prone to churning, we can lower the probability threshold, and a high AUC-PR score of 0.89 will allow us to maintain a high precision that there will not be many more users with no intent of churning mistakenly targeted.
 
 ## Discussion
 
